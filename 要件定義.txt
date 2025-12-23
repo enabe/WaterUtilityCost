@@ -1,0 +1,10 @@
+ビルの管理がしたい
+C#で開発したい
+VisualStudioで開発したい
+Windowsフォームで開発したい
+Windows フォーム デザイナーでGUIを操作したい
+データベースはSQLServerで行いたい
+フレームワークは.NET Framework4.8にしたい
+毎回の作業の最後に最新のシステム仕様をまとめてdoc/document.mdを更新する
+
+
