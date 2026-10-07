@@ -66,20 +66,20 @@ namespace WaterUtilityCost.Forms
             // btnPrintInvoice
             // 
             this.btnPrintInvoice.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.btnPrintInvoice.Location = new System.Drawing.Point(50, 120);
+            this.btnPrintInvoice.Location = new System.Drawing.Point(50, 150);
             this.btnPrintInvoice.Name = "btnPrintInvoice";
             this.btnPrintInvoice.Size = new System.Drawing.Size(200, 50);
-            this.btnPrintInvoice.TabIndex = 2;
+            this.btnPrintInvoice.TabIndex = 4;
             this.btnPrintInvoice.Text = "請求書印刷";
             this.btnPrintInvoice.UseVisualStyleBackColor = true;
             // 
             // btnPrintInvoiceList
             // 
             this.btnPrintInvoiceList.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.btnPrintInvoiceList.Location = new System.Drawing.Point(270, 120);
+            this.btnPrintInvoiceList.Location = new System.Drawing.Point(270, 150);
             this.btnPrintInvoiceList.Name = "btnPrintInvoiceList";
             this.btnPrintInvoiceList.Size = new System.Drawing.Size(200, 50);
-            this.btnPrintInvoiceList.TabIndex = 3;
+            this.btnPrintInvoiceList.TabIndex = 5;
             this.btnPrintInvoiceList.Text = "請求一覧印刷";
             this.btnPrintInvoiceList.UseVisualStyleBackColor = true;
             // 
@@ -87,10 +87,10 @@ namespace WaterUtilityCost.Forms
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.btnCancel.Location = new System.Drawing.Point(420, 200);
+            this.btnCancel.Location = new System.Drawing.Point(420, 240);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(100, 40);
-            this.btnCancel.TabIndex = 4;
+            this.btnCancel.TabIndex = 6;
             this.btnCancel.Text = "閉じる";
             this.btnCancel.UseVisualStyleBackColor = true;
             // 
@@ -99,7 +99,7 @@ namespace WaterUtilityCost.Forms
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(550, 280);
+            this.ClientSize = new System.Drawing.Size(550, 320);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnPrintInvoiceList);
             this.Controls.Add(this.btnPrintInvoice);

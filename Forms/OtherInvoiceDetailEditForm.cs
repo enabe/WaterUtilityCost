@@ -15,9 +15,12 @@ namespace WaterUtilityCost.Forms
     {
         private InvoiceDetail _currentInvoiceDetail;
         private bool _isEditMode;
+        private bool _suppressBillingToSelectionEffects;
+        private readonly string? _defaultBillingYearMonth;
 
-        public OtherInvoiceDetailEditForm()
+        public OtherInvoiceDetailEditForm(string? defaultBillingYearMonth = null)
         {
+            _defaultBillingYearMonth = defaultBillingYearMonth;
             InitializeComponent();
             InitializeComponentAdditional();
             _isEditMode = false;
@@ -53,7 +56,8 @@ namespace WaterUtilityCost.Forms
                     TaxRate = invoiceDetail.TaxRate,
                     Contractor = invoiceDetail.Contractor,
                     InvoiceNumber = invoiceDetail.InvoiceNumber,
-                    ConfirmedBillingDate = invoiceDetail.ConfirmedBillingDate
+                    ConfirmedBillingDate = invoiceDetail.ConfirmedBillingDate,
+                    BillingYearMonth = invoiceDetail.BillingYearMonth
                 };
                 // LoadInvoiceDetailDataはInitializeComponentAdditionalで呼ばれる
             }
@@ -78,10 +82,10 @@ namespace WaterUtilityCost.Forms
                 this.Text = "その他請求明細登録";
             }
 
-            // 業者ComboBoxの初期化
+            await LoadBillingToClientsAsync();
             await LoadContractorsAsync();
 
-            // 業者選択時のイベントハンドラー
+            cmbBillingTo.SelectedIndexChanged += CmbBillingTo_SelectedIndexChanged;
             cmbContractor.SelectedIndexChanged += CmbContractor_SelectedIndexChanged;
 
             // データを読み込む（編集モードまたはコピーモードの場合）
@@ -93,6 +97,70 @@ namespace WaterUtilityCost.Forms
             // イベントハンドラー
             btnSave.Click += BtnSave_Click;
             btnCancel.Click += BtnCancel_Click;
+        }
+
+        private async Task LoadBillingToClientsAsync()
+        {
+            try
+            {
+                var clients = await ClientDataAccess.GetAllClientsAsync();
+                var billingTos = clients.Where(c => c.IsBillingTo).ToList();
+
+                cmbBillingTo.Items.Clear();
+                cmbBillingTo.Items.Add(new { Id = (int?)null, Name = "", BuildingName = "", RoomName = "" });
+                foreach (var c in billingTos)
+                {
+                    cmbBillingTo.Items.Add(new
+                    {
+                        Id = (int?)c.Id,
+                        Name = c.Name,
+                        BuildingName = c.BuildingName ?? "",
+                        RoomName = c.RoomName ?? ""
+                    });
+                }
+                cmbBillingTo.DisplayMember = "Name";
+                cmbBillingTo.ValueMember = "Id";
+                if (cmbBillingTo.Items.Count > 0)
+                {
+                    cmbBillingTo.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"請求先の読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void CmbBillingTo_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_suppressBillingToSelectionEffects)
+            {
+                return;
+            }
+
+            if (cmbBillingTo.SelectedItem == null)
+            {
+                return;
+            }
+
+            var selectedItem = cmbBillingTo.SelectedItem;
+            var idProp = selectedItem.GetType().GetProperty("Id");
+            var idObj = idProp?.GetValue(selectedItem);
+            int? clientId = idObj switch
+            {
+                null => null,
+                int i => i,
+                _ => null
+            };
+            if (!clientId.HasValue)
+            {
+                return;
+            }
+
+            var buildingProp = selectedItem.GetType().GetProperty("BuildingName");
+            var roomProp = selectedItem.GetType().GetProperty("RoomName");
+            txtBuildingName.Text = buildingProp?.GetValue(selectedItem)?.ToString() ?? "";
+            txtRoomNumber.Text = roomProp?.GetValue(selectedItem)?.ToString() ?? "";
         }
 
         private async Task LoadContractorsAsync()
@@ -133,9 +201,14 @@ namespace WaterUtilityCost.Forms
 
         private void LoadInvoiceDetailData()
         {
-            if (_currentInvoiceDetail != null)
+            if (_currentInvoiceDetail == null)
             {
-                txtBillingTo.Text = _currentInvoiceDetail.BillingTo;
+                return;
+            }
+
+            _suppressBillingToSelectionEffects = true;
+            try
+            {
                 txtLessor.Text = _currentInvoiceDetail.Lessor;
                 txtBuildingName.Text = _currentInvoiceDetail.BuildingName;
                 txtLessee.Text = _currentInvoiceDetail.Lessee;
@@ -145,8 +218,42 @@ namespace WaterUtilityCost.Forms
                 txtTaxInclusiveAmount.Text = _currentInvoiceDetail.TaxInclusiveAmount.ToString();
                 txtTaxRate.Text = _currentInvoiceDetail.TaxRate.ToString();
                 txtInvoiceNumber.Text = _currentInvoiceDetail.InvoiceNumber;
+                txtBillingYearMonth.Text = !string.IsNullOrWhiteSpace(_currentInvoiceDetail.BillingYearMonth)
+                    ? _currentInvoiceDetail.BillingYearMonth
+                    : (_defaultBillingYearMonth ?? string.Empty);
                 dtpConfirmedBillingDate.Value = _currentInvoiceDetail.ConfirmedBillingDate ?? DateTime.Now;
                 dtpConfirmedBillingDate.Checked = _currentInvoiceDetail.ConfirmedBillingDate.HasValue;
+
+                var billingTo = _currentInvoiceDetail.BillingTo?.Trim() ?? "";
+                int foundIndex = -1;
+                for (int i = 0; i < cmbBillingTo.Items.Count; i++)
+                {
+                    var item = cmbBillingTo.Items[i];
+                    var nameProperty = item.GetType().GetProperty("Name");
+                    if (nameProperty != null)
+                    {
+                        var name = nameProperty.GetValue(item)?.ToString() ?? "";
+                        if (name == billingTo)
+                        {
+                            foundIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (foundIndex >= 0)
+                {
+                    cmbBillingTo.SelectedIndex = foundIndex;
+                }
+                else if (!string.IsNullOrEmpty(billingTo))
+                {
+                    cmbBillingTo.Items.Add(new { Id = (int?)null, Name = billingTo, BuildingName = "", RoomName = "" });
+                    cmbBillingTo.SelectedIndex = cmbBillingTo.Items.Count - 1;
+                }
+                else if (cmbBillingTo.Items.Count > 0)
+                {
+                    cmbBillingTo.SelectedIndex = 0;
+                }
 
                 // 業者ComboBoxの設定
                 if (!string.IsNullOrEmpty(_currentInvoiceDetail.Contractor) && cmbContractor.Items.Count > 0)
@@ -171,16 +278,36 @@ namespace WaterUtilityCost.Forms
                     cmbContractor.SelectedIndex = 0; // 空を選択
                 }
             }
+            finally
+            {
+                _suppressBillingToSelectionEffects = false;
+            }
+
+            if (_currentInvoiceDetail == null && !string.IsNullOrWhiteSpace(_defaultBillingYearMonth))
+            {
+                txtBillingYearMonth.Text = _defaultBillingYearMonth;
+            }
+        }
+
+        private static string GetComboNameOrEmpty(object? selectedItem)
+        {
+            if (selectedItem == null)
+            {
+                return string.Empty;
+            }
+            var nameProperty = selectedItem.GetType().GetProperty("Name");
+            return nameProperty?.GetValue(selectedItem)?.ToString()?.Trim() ?? string.Empty;
         }
 
         private async void BtnSave_Click(object? sender, EventArgs e)
         {
             try
             {
+                var billingToName = GetComboNameOrEmpty(cmbBillingTo.SelectedItem);
                 // バリデーション
-                if (string.IsNullOrWhiteSpace(txtBillingTo.Text))
+                if (string.IsNullOrWhiteSpace(billingToName))
                 {
-                    MessageBox.Show("請求先を入力してください。", "バリデーションエラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("請求先を選択してください。", "バリデーションエラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if (string.IsNullOrWhiteSpace(txtBuildingName.Text))
@@ -215,7 +342,7 @@ namespace WaterUtilityCost.Forms
                     _currentInvoiceDetail = new InvoiceDetail();
                 }
 
-                _currentInvoiceDetail.BillingTo = txtBillingTo.Text.Trim();
+                _currentInvoiceDetail.BillingTo = billingToName;
                 _currentInvoiceDetail.Lessor = txtLessor.Text.Trim();
                 _currentInvoiceDetail.BuildingName = txtBuildingName.Text.Trim();
                 _currentInvoiceDetail.Lessee = txtLessee.Text.Trim();
@@ -226,6 +353,21 @@ namespace WaterUtilityCost.Forms
                 _currentInvoiceDetail.TaxRate = taxRate;
                 _currentInvoiceDetail.InvoiceNumber = txtInvoiceNumber.Text.Trim();
                 _currentInvoiceDetail.ConfirmedBillingDate = dtpConfirmedBillingDate.Checked ? dtpConfirmedBillingDate.Value : (DateTime?)null;
+
+                var billingYearMonth = txtBillingYearMonth.Text.Trim();
+                if (string.IsNullOrWhiteSpace(billingYearMonth) && !string.IsNullOrWhiteSpace(_defaultBillingYearMonth))
+                {
+                    billingYearMonth = _defaultBillingYearMonth;
+                }
+
+                if (!string.IsNullOrWhiteSpace(billingYearMonth)
+                    && !System.Text.RegularExpressions.Regex.IsMatch(billingYearMonth, @"^\d{4}-\d{2}$"))
+                {
+                    MessageBox.Show("請求年月はYYYY-MM形式で入力してください。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _currentInvoiceDetail.BillingYearMonth = billingYearMonth;
 
                 // 業者名を取得
                 if (cmbContractor.SelectedItem != null)
@@ -281,4 +423,3 @@ namespace WaterUtilityCost.Forms
         }
     }
 }
-

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +14,27 @@ namespace WaterUtilityCost.Forms
     /// </summary>
     public partial class GasBillingManagementForm : Form
     {
+        private int? _pendingSelectId;
+        private int? _pendingScrollIndex;
+        private bool _suppressDisplay;
+        private string _sortColumn = "Id";
+        private bool _sortAscending;
+
+        private sealed class GasBillingGridRow
+        {
+            public int Id { get; set; }
+            public string 受領請求年月 { get; set; } = string.Empty;
+            public string 親メーター { get; set; } = string.Empty;
+            public string ビル名 { get; set; } = string.Empty;
+            public decimal 使用量 { get; set; }
+            public DateTime 使用期間開始 { get; set; }
+            public DateTime 使用期間終了 { get; set; }
+            public decimal 基本料金 { get; set; }
+            public decimal 使用料金 { get; set; }
+            public decimal 合計金額 { get; set; }
+            public decimal 税率 { get; set; }
+            public string お客様番号 { get; set; } = string.Empty;
+        }
 
         public GasBillingManagementForm()
         {
@@ -29,9 +51,13 @@ namespace WaterUtilityCost.Forms
             
             // イベントハンドラー
             _btnAdd.Click += BtnAdd_Click;
+            _btnCopyAndAdd.Click += BtnCopyAndAdd_Click;
             _btnEdit.Click += BtnEdit_Click;
             _btnDelete.Click += BtnDelete_Click;
             _btnRefresh.Click += BtnRefresh_Click;
+            _dgvGasBillings.DoubleClick += DgvGasBillings_DoubleClick;
+            _dgvGasBillings.DataBindingComplete += DgvGasBillings_DataBindingComplete;
+            _dgvGasBillings.ColumnHeaderMouseClick += DgvGasBillings_ColumnHeaderMouseClick;
         }
 
         private async void GasBillingManagementForm_Load(object? sender, EventArgs e)
@@ -39,35 +65,230 @@ namespace WaterUtilityCost.Forms
             await LoadGasBillingsAsync();
         }
 
-        private async Task LoadGasBillingsAsync()
+        private async Task LoadGasBillingsAsync(int? selectId = null, int? scrollIndex = null)
         {
             try
             {
                 var gasBillings = await GasBillingDataAccess.GetAllGasBillingsAsync();
-                _dgvGasBillings.DataSource = gasBillings.Select(gb => new
+                var meters = await MeterDataAccess.GetAllMetersAsync();
+                var buildings = await BuildingDataAccess.GetAllBuildingsAsync();
+                var buildingNameById = buildings.ToDictionary(b => b.Id, b => b.Name);
+
+                string GetParentMeterDisplay(int? parentMeterId)
                 {
-                    gb.Id,
-                    受領請求年月 = gb.BillingYearMonth,
-                    ビル名 = gb.BuildingName,
+                    if (!parentMeterId.HasValue)
+                    {
+                        return string.Empty;
+                    }
+
+                    var meter = meters.FirstOrDefault(m => m.Id == parentMeterId.Value);
+                    if (meter == null)
+                    {
+                        return string.Empty;
+                    }
+
+                    var meterName = string.IsNullOrWhiteSpace(meter.MeterName) ? $"ID:{meter.Id}" : meter.MeterName;
+                    var buildingName = meter.BuildingId.HasValue && buildingNameById.TryGetValue(meter.BuildingId.Value, out var name)
+                        ? name
+                        : string.Empty;
+                    return string.IsNullOrWhiteSpace(buildingName) ? meterName : $"{meterName} ({buildingName})";
+                }
+                if (selectId.HasValue)
+                {
+                    _pendingSelectId = selectId;
+                    _pendingScrollIndex = scrollIndex;
+                    _suppressDisplay = true;
+                    _dgvGasBillings.SuspendLayout();
+                    _dgvGasBillings.Visible = false;
+                }
+
+                var rows = gasBillings.Select(gb => new GasBillingGridRow
+                {
+                    Id = gb.Id,
+                    受領請求年月 = gb.BillingYearMonth ?? "",
+                    親メーター = GetParentMeterDisplay(gb.ParentMeterId),
+                    ビル名 = gb.BuildingName ?? "",
                     使用量 = gb.UsageAmount,
-                    使用期間開始 = gb.StartDate.ToString("yyyy-MM-dd"),
-                    使用期間終了 = gb.EndDate.ToString("yyyy-MM-dd"),
+                    使用期間開始 = gb.StartDate,
+                    使用期間終了 = gb.EndDate,
                     基本料金 = gb.BasicCharge,
                     使用料金 = gb.UsageCharge,
+                    合計金額 = gb.BasicCharge + gb.UsageCharge,
                     税率 = gb.TaxRate,
-                    お客様番号 = gb.CustomerNumber
-                }).OrderByDescending(x => x.Id).ToList();
+                    お客様番号 = gb.CustomerNumber ?? ""
+                });
+
+                _dgvGasBillings.DataSource = ApplySort(rows).ToList();
+                UpdateSortGlyph();
 
                 // ID列の幅を狭く設定
                 if (_dgvGasBillings.Columns["Id"] != null)
                 {
                     _dgvGasBillings.Columns["Id"].Width = 40;
                 }
+                if (_dgvGasBillings.Columns["税率"] != null)
+                {
+                    _dgvGasBillings.Columns["税率"].FillWeight = 50;
+                }
+
+                if (_dgvGasBillings.Columns["使用期間開始"] != null)
+                {
+                    _dgvGasBillings.Columns["使用期間開始"].DefaultCellStyle.Format = "yyyy-MM-dd";
+                }
+
+                if (_dgvGasBillings.Columns["使用期間終了"] != null)
+                {
+                    _dgvGasBillings.Columns["使用期間終了"].DefaultCellStyle.Format = "yyyy-MM-dd";
+                }
+
+                if (!selectId.HasValue)
+                {
+                    _suppressDisplay = false;
+                    _dgvGasBillings.Visible = true;
+                    _dgvGasBillings.ResumeLayout();
+                }
             }
             catch (Exception ex)
             {
+                if (_suppressDisplay)
+                {
+                    _dgvGasBillings.Visible = true;
+                    _dgvGasBillings.ResumeLayout();
+                    _suppressDisplay = false;
+                }
                 MessageBox.Show($"ガス料金請求データの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private IEnumerable<GasBillingGridRow> ApplySort(IEnumerable<GasBillingGridRow> source)
+        {
+            return (_sortColumn, _sortAscending) switch
+            {
+                ("Id", true) => source.OrderBy(x => x.Id),
+                ("Id", false) => source.OrderByDescending(x => x.Id),
+                ("受領請求年月", true) => source.OrderBy(x => x.受領請求年月),
+                ("受領請求年月", false) => source.OrderByDescending(x => x.受領請求年月),
+                ("親メーター", true) => source.OrderBy(x => x.親メーター),
+                ("親メーター", false) => source.OrderByDescending(x => x.親メーター),
+                ("ビル名", true) => source.OrderBy(x => x.ビル名),
+                ("ビル名", false) => source.OrderByDescending(x => x.ビル名),
+                ("使用量", true) => source.OrderBy(x => x.使用量),
+                ("使用量", false) => source.OrderByDescending(x => x.使用量),
+                ("使用期間開始", true) => source.OrderBy(x => x.使用期間開始),
+                ("使用期間開始", false) => source.OrderByDescending(x => x.使用期間開始),
+                ("使用期間終了", true) => source.OrderBy(x => x.使用期間終了),
+                ("使用期間終了", false) => source.OrderByDescending(x => x.使用期間終了),
+                ("基本料金", true) => source.OrderBy(x => x.基本料金),
+                ("基本料金", false) => source.OrderByDescending(x => x.基本料金),
+                ("使用料金", true) => source.OrderBy(x => x.使用料金),
+                ("使用料金", false) => source.OrderByDescending(x => x.使用料金),
+                ("合計金額", true) => source.OrderBy(x => x.合計金額),
+                ("合計金額", false) => source.OrderByDescending(x => x.合計金額),
+                ("税率", true) => source.OrderBy(x => x.税率),
+                ("税率", false) => source.OrderByDescending(x => x.税率),
+                ("お客様番号", true) => source.OrderBy(x => x.お客様番号),
+                ("お客様番号", false) => source.OrderByDescending(x => x.お客様番号),
+                _ => source.OrderByDescending(x => x.Id)
+            };
+        }
+
+        private void UpdateSortGlyph()
+        {
+            foreach (DataGridViewColumn column in _dgvGasBillings.Columns)
+            {
+                column.HeaderCell.SortGlyphDirection = SortOrder.None;
+            }
+
+            if (_dgvGasBillings.Columns.Contains(_sortColumn))
+            {
+                _dgvGasBillings.Columns[_sortColumn].HeaderCell.SortGlyphDirection =
+                    _sortAscending ? SortOrder.Ascending : SortOrder.Descending;
+            }
+        }
+
+        private async void DgvGasBillings_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex < 0)
+            {
+                return;
+            }
+
+            var clickedColumnName = _dgvGasBillings.Columns[e.ColumnIndex].Name;
+            if (_sortColumn == clickedColumnName)
+            {
+                _sortAscending = !_sortAscending;
+            }
+            else
+            {
+                _sortColumn = clickedColumnName;
+                _sortAscending = true;
+            }
+
+            int? selectedId = null;
+            int? currentScrollIndex = null;
+            if (_dgvGasBillings.SelectedRows.Count > 0 &&
+                _dgvGasBillings.SelectedRows[0].Cells["Id"].Value is int id)
+            {
+                selectedId = id;
+            }
+
+            if (_dgvGasBillings.Rows.Count > 0)
+            {
+                currentScrollIndex = _dgvGasBillings.FirstDisplayedScrollingRowIndex;
+            }
+
+            await LoadGasBillingsAsync(selectedId, currentScrollIndex);
+        }
+
+        private void DgvGasBillings_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            if (!_pendingSelectId.HasValue)
+            {
+                return;
+            }
+
+            var selectId = _pendingSelectId.Value;
+            _pendingSelectId = null;
+            var scrollIndex = _pendingScrollIndex;
+            _pendingScrollIndex = null;
+            ApplySelectionAndScroll(selectId, scrollIndex);
+        }
+
+        private void ApplySelectionAndScroll(int selectId, int? scrollIndex)
+        {
+            _dgvGasBillings.BeginInvoke(new Action(() =>
+            {
+                var targetRow = _dgvGasBillings.Rows
+                    .Cast<DataGridViewRow>()
+                    .FirstOrDefault(row => row.Cells["Id"].Value is int id && id == selectId);
+                if (targetRow == null)
+                {
+                    if (_suppressDisplay)
+                    {
+                        _dgvGasBillings.Visible = true;
+                        _dgvGasBillings.ResumeLayout();
+                        _suppressDisplay = false;
+                    }
+                    return;
+                }
+
+                _dgvGasBillings.ClearSelection();
+                targetRow.Selected = true;
+                _dgvGasBillings.CurrentCell = targetRow.Cells["Id"];
+
+                var index = scrollIndex ?? targetRow.Index;
+                if (index >= 0 && index < _dgvGasBillings.Rows.Count)
+                {
+                    _dgvGasBillings.FirstDisplayedScrollingRowIndex = index;
+                }
+
+                if (_suppressDisplay)
+                {
+                    _dgvGasBillings.Visible = true;
+                    _dgvGasBillings.ResumeLayout();
+                    _suppressDisplay = false;
+                }
+            }));
         }
 
         private async void BtnAdd_Click(object? sender, EventArgs e)
@@ -76,6 +297,27 @@ namespace WaterUtilityCost.Forms
             if (form.ShowDialog() == DialogResult.OK)
             {
                 await LoadGasBillingsAsync();
+            }
+        }
+
+        private async void BtnCopyAndAdd_Click(object? sender, EventArgs e)
+        {
+            if (_dgvGasBillings.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("コピーするガス料金請求データを選択してください。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var selectedRow = _dgvGasBillings.SelectedRows[0];
+            var gasBillingId = (int)selectedRow.Cells["Id"].Value;
+            var gasBilling = await GasBillingDataAccess.GetGasBillingByIdAsync(gasBillingId);
+            if (gasBilling != null)
+            {
+                var form = new GasBillingForm(gasBilling, true);
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    await LoadGasBillingsAsync();
+                }
             }
         }
 
@@ -89,6 +331,7 @@ namespace WaterUtilityCost.Forms
 
             var selectedRow = _dgvGasBillings.SelectedRows[0];
             var gasBillingId = (int)selectedRow.Cells["Id"].Value;
+            var currentScrollIndex = _dgvGasBillings.FirstDisplayedScrollingRowIndex;
 
             var gasBilling = await GasBillingDataAccess.GetGasBillingByIdAsync(gasBillingId);
             if (gasBilling != null)
@@ -96,7 +339,7 @@ namespace WaterUtilityCost.Forms
                 var form = new GasBillingForm(gasBilling);
                 if (form.ShowDialog() == DialogResult.OK)
                 {
-                    await LoadGasBillingsAsync();
+                    await LoadGasBillingsAsync(gasBillingId, currentScrollIndex);
                 }
             }
         }
@@ -110,9 +353,9 @@ namespace WaterUtilityCost.Forms
             }
 
             var selectedRow = _dgvGasBillings.SelectedRows[0];
-            var buildingName = selectedRow.Cells["ビル名"].Value?.ToString() ?? "";
+            var parentMeterName = selectedRow.Cells["親メーター"].Value?.ToString() ?? "";
             var billingYearMonth = selectedRow.Cells["受領請求年月"].Value?.ToString() ?? "";
-            var result = MessageBox.Show($"ガス料金請求データ「{buildingName} - {billingYearMonth}」を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var result = MessageBox.Show($"ガス料金請求データ「{parentMeterName} - {billingYearMonth}」を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
                 try
@@ -131,6 +374,28 @@ namespace WaterUtilityCost.Forms
         private async void BtnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadGasBillingsAsync();
+        }
+
+        private async void DgvGasBillings_DoubleClick(object? sender, EventArgs e)
+        {
+            if (_dgvGasBillings.SelectedRows.Count == 0)
+            {
+                return;
+            }
+
+            var selectedRow = _dgvGasBillings.SelectedRows[0];
+            var gasBillingId = (int)selectedRow.Cells["Id"].Value;
+            var currentScrollIndex = _dgvGasBillings.FirstDisplayedScrollingRowIndex;
+
+            var gasBilling = await GasBillingDataAccess.GetGasBillingByIdAsync(gasBillingId);
+            if (gasBilling != null)
+            {
+                var form = new GasBillingForm(gasBilling);
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    await LoadGasBillingsAsync(gasBillingId, currentScrollIndex);
+                }
+            }
         }
     }
 }

@@ -11,6 +11,7 @@ namespace WaterUtilityCost.Models
         public int? BuildingId { get; set; } // ビルID (BuildingsテーブルへのFK)
         public int? ContractorId { get; set; } // 業者ID (ClientsテーブルへのFK、IsContractor=trueの取引先)
         public string MeterId { get; set; } = string.Empty; // メーターID
+        public string MeterName { get; set; } = string.Empty; // 親メーター名
         public string MeterType { get; set; } = string.Empty; // メーター種別
         public string ManagementNumber { get; set; } = string.Empty; // 管理番号
         public DateTime CreatedAt { get; set; }

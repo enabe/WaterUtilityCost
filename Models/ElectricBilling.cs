@@ -18,6 +18,7 @@ namespace WaterUtilityCost.Models
         public decimal TaxRate { get; set; } // 税率
         public decimal BillingAmount { get; set; } // 請求金額
         public string CustomerNumber { get; set; } = string.Empty; // お客様番号
+        public int? ContractorId { get; set; } // 業者（Clients.Id）
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

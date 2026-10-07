@@ -12,6 +12,7 @@ namespace WaterUtilityCost.Forms
         private System.Windows.Forms.Button _btnEdit;
         private System.Windows.Forms.Button _btnDelete;
         private System.Windows.Forms.Button _btnRefresh;
+        private System.Windows.Forms.Button _btnCopyAndAdd;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel statusLabel;
 
@@ -41,6 +42,7 @@ namespace WaterUtilityCost.Forms
             this._btnEdit = new System.Windows.Forms.Button();
             this._btnDelete = new System.Windows.Forms.Button();
             this._btnRefresh = new System.Windows.Forms.Button();
+            this._btnCopyAndAdd = new System.Windows.Forms.Button();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             ((System.ComponentModel.ISupportInitialize)(this._dgvRoomChildMeters)).BeginInit();
@@ -50,6 +52,9 @@ namespace WaterUtilityCost.Forms
             // _dgvRoomChildMeters
             // 
             this._dgvRoomChildMeters.AllowUserToAddRows = false;
+            this._dgvRoomChildMeters.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this._dgvRoomChildMeters.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this._dgvRoomChildMeters.Location = new System.Drawing.Point(20, 70);
             this._dgvRoomChildMeters.MultiSelect = false;
@@ -69,30 +74,39 @@ namespace WaterUtilityCost.Forms
             this._btnAdd.Text = "新規登録";
             this._btnAdd.UseVisualStyleBackColor = true;
             // 
+            // _btnCopyAndAdd
+            // 
+            this._btnCopyAndAdd.Location = new System.Drawing.Point(130, 20);
+            this._btnCopyAndAdd.Name = "_btnCopyAndAdd";
+            this._btnCopyAndAdd.Size = new System.Drawing.Size(120, 30);
+            this._btnCopyAndAdd.TabIndex = 2;
+            this._btnCopyAndAdd.Text = "コピーして追加";
+            this._btnCopyAndAdd.UseVisualStyleBackColor = true;
+            // 
             // _btnEdit
             // 
-            this._btnEdit.Location = new System.Drawing.Point(130, 20);
+            this._btnEdit.Location = new System.Drawing.Point(260, 20);
             this._btnEdit.Name = "_btnEdit";
             this._btnEdit.Size = new System.Drawing.Size(100, 30);
-            this._btnEdit.TabIndex = 2;
+            this._btnEdit.TabIndex = 3;
             this._btnEdit.Text = "編集";
             this._btnEdit.UseVisualStyleBackColor = true;
             // 
             // _btnDelete
             // 
-            this._btnDelete.Location = new System.Drawing.Point(240, 20);
+            this._btnDelete.Location = new System.Drawing.Point(370, 20);
             this._btnDelete.Name = "_btnDelete";
             this._btnDelete.Size = new System.Drawing.Size(100, 30);
-            this._btnDelete.TabIndex = 3;
+            this._btnDelete.TabIndex = 4;
             this._btnDelete.Text = "削除";
             this._btnDelete.UseVisualStyleBackColor = true;
             // 
             // _btnRefresh
             // 
-            this._btnRefresh.Location = new System.Drawing.Point(350, 20);
+            this._btnRefresh.Location = new System.Drawing.Point(480, 20);
             this._btnRefresh.Name = "_btnRefresh";
             this._btnRefresh.Size = new System.Drawing.Size(100, 30);
-            this._btnRefresh.TabIndex = 4;
+            this._btnRefresh.TabIndex = 5;
             this._btnRefresh.Text = "更新";
             this._btnRefresh.UseVisualStyleBackColor = true;
             // 
@@ -122,6 +136,7 @@ namespace WaterUtilityCost.Forms
             this.Controls.Add(this._btnRefresh);
             this.Controls.Add(this._btnDelete);
             this.Controls.Add(this._btnEdit);
+            this.Controls.Add(this._btnCopyAndAdd);
             this.Controls.Add(this._btnAdd);
             this.Controls.Add(this._dgvRoomChildMeters);
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
@@ -137,6 +152,8 @@ namespace WaterUtilityCost.Forms
         #endregion
     }
 }
+
+
 
 
 

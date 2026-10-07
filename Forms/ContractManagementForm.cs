@@ -14,6 +14,9 @@ namespace WaterUtilityCost.Forms
     /// </summary>
     public partial class ContractManagementForm : Form
     {
+        private int? _pendingSelectId;
+        private int? _pendingScrollIndex;
+        private bool _suppressDisplay;
 
         public ContractManagementForm()
         {
@@ -33,6 +36,7 @@ namespace WaterUtilityCost.Forms
             _btnEdit.Click += BtnEdit_Click;
             _btnDelete.Click += BtnDelete_Click;
             _btnRefresh.Click += BtnRefresh_Click;
+            _dgvContracts.DataBindingComplete += DgvContracts_DataBindingComplete;
         }
 
         private async void ContractManagementForm_Load(object? sender, EventArgs e)
@@ -40,13 +44,20 @@ namespace WaterUtilityCost.Forms
             await LoadContractsAsync();
         }
 
-        private async Task LoadContractsAsync()
+        private async Task LoadContractsAsync(int? selectId = null, int? scrollIndex = null)
         {
             try
             {
                 var contracts = await ContractDataAccess.GetAllContractsAsync();
                 var clients = await ClientDataAccess.GetAllClientsAsync();
                 var buildings = await BuildingDataAccess.GetAllBuildingsAsync();
+
+                if (selectId.HasValue)
+                {
+                    _suppressDisplay = true;
+                    _dgvContracts.SuspendLayout();
+                    _dgvContracts.Visible = false;
+                }
 
                 _dgvContracts!.DataSource = contracts.Select(c => new
                 {
@@ -70,11 +81,80 @@ namespace WaterUtilityCost.Forms
                 {
                     _dgvContracts.Columns["Id"].Width = 40;
                 }
+
+                if (selectId.HasValue)
+                {
+                    _pendingSelectId = selectId;
+                    _pendingScrollIndex = scrollIndex;
+                }
+                else
+                {
+                    _suppressDisplay = false;
+                    _dgvContracts.Visible = true;
+                    _dgvContracts.ResumeLayout();
+                }
             }
             catch (Exception ex)
             {
+                if (_suppressDisplay)
+                {
+                    _dgvContracts.Visible = true;
+                    _dgvContracts.ResumeLayout();
+                    _suppressDisplay = false;
+                }
                 MessageBox.Show($"データの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void DgvContracts_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            if (!_pendingSelectId.HasValue)
+            {
+                return;
+            }
+
+            var selectId = _pendingSelectId.Value;
+            _pendingSelectId = null;
+            var scrollIndex = _pendingScrollIndex;
+            _pendingScrollIndex = null;
+            ApplySelectionAndScroll(selectId, scrollIndex);
+        }
+
+        private void ApplySelectionAndScroll(int selectId, int? scrollIndex)
+        {
+            _dgvContracts.BeginInvoke(new Action(() =>
+            {
+                var targetRow = _dgvContracts.Rows
+                    .Cast<DataGridViewRow>()
+                    .FirstOrDefault(row => row.Cells["Id"].Value is int id && id == selectId);
+                if (targetRow == null)
+                {
+                    if (_suppressDisplay)
+                    {
+                        _dgvContracts.Visible = true;
+                        _dgvContracts.ResumeLayout();
+                        _suppressDisplay = false;
+                    }
+                    return;
+                }
+
+                _dgvContracts.ClearSelection();
+                targetRow.Selected = true;
+                _dgvContracts.CurrentCell = targetRow.Cells["Id"];
+
+                var index = scrollIndex ?? targetRow.Index;
+                if (index >= 0 && index < _dgvContracts.Rows.Count)
+                {
+                    _dgvContracts.FirstDisplayedScrollingRowIndex = index;
+                }
+
+                if (_suppressDisplay)
+                {
+                    _dgvContracts.Visible = true;
+                    _dgvContracts.ResumeLayout();
+                    _suppressDisplay = false;
+                }
+            }));
         }
 
         private string GetClientName(List<Client> clients, int? clientId)
@@ -110,6 +190,7 @@ namespace WaterUtilityCost.Forms
 
             var selectedRow = _dgvContracts.SelectedRows[0];
             var id = (int)selectedRow.Cells["Id"].Value;
+            var currentScrollIndex = _dgvContracts.FirstDisplayedScrollingRowIndex;
             var contract = await ContractDataAccess.GetContractByIdAsync(id);
 
             if (contract != null)
@@ -117,7 +198,7 @@ namespace WaterUtilityCost.Forms
                 using var form = new ContractForm(contract);
                 if (form.ShowDialog() == DialogResult.OK)
                 {
-                    await LoadContractsAsync();
+                    await LoadContractsAsync(id, currentScrollIndex);
                 }
             }
         }

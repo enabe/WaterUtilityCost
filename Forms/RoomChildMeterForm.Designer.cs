@@ -123,7 +123,7 @@ namespace WaterUtilityCost.Forms
             this.lblParentMeter.Name = "lblParentMeter";
             this.lblParentMeter.Size = new System.Drawing.Size(89, 25);
             this.lblParentMeter.TabIndex = 6;
-            this.lblParentMeter.Text = "親メーター:";
+            this.lblParentMeter.Text = "親メーター名:";
             // 
             // cmbParentMeter
             // 
@@ -143,7 +143,7 @@ namespace WaterUtilityCost.Forms
             this.lblChildMeter.Name = "lblChildMeter";
             this.lblChildMeter.Size = new System.Drawing.Size(89, 25);
             this.lblChildMeter.TabIndex = 8;
-            this.lblChildMeter.Text = "子メーター:";
+            this.lblChildMeter.Text = "子メーター名:";
             // 
             // cmbChildMeter
             // 

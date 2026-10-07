@@ -74,6 +74,9 @@ namespace WaterUtilityCost.Forms
             // _dgvOtherInvoiceDetails
             // 
             this._dgvOtherInvoiceDetails.AllowUserToAddRows = false;
+            this._dgvOtherInvoiceDetails.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this._dgvOtherInvoiceDetails.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this._dgvOtherInvoiceDetails.ColumnHeadersHeight = 29;
             this._dgvOtherInvoiceDetails.Location = new System.Drawing.Point(20, 145);

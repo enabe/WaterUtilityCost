@@ -16,6 +16,7 @@ namespace WaterUtilityCost.Forms
     {
         private RoomChildMeter _currentRoomChildMeter;
         private bool _isEditMode;
+        private bool _isCopyMode;
 
         /// <summary>
         /// 部屋別子メーター情報登録フォームのコンストラクタ（新規登録用）
@@ -25,6 +26,7 @@ namespace WaterUtilityCost.Forms
             InitializeComponent();
             InitializeComponentAdditional();
             _isEditMode = false;
+            _isCopyMode = false;
             _currentRoomChildMeter = new RoomChildMeter();
             this.Load += RoomChildMeterForm_Load;
         }
@@ -37,7 +39,23 @@ namespace WaterUtilityCost.Forms
         {
             _currentRoomChildMeter = roomChildMeter;
             _isEditMode = true;
-            LoadRoomChildMeterData();
+            _isCopyMode = false;
+        }
+
+        /// <summary>
+        /// 既存の部屋別子メーター情報をコピーして新規登録画面を開くコンストラクタ
+        /// </summary>
+        /// <param name="roomChildMeter">コピー元の部屋別子メーター情報</param>
+        /// <param name="isCopyMode">コピーモード</param>
+        public RoomChildMeterForm(RoomChildMeter roomChildMeter, bool isCopyMode) : this()
+        {
+            if (isCopyMode)
+            {
+                _currentRoomChildMeter = roomChildMeter;
+                _isEditMode = false;
+                _isCopyMode = true;
+                this.Text = "部屋別子メーター情報登録";
+            }
         }
 
         /// <summary>
@@ -49,15 +67,18 @@ namespace WaterUtilityCost.Forms
         {
             await LoadBuildingsAsync();
             LoadMeterTypes();
-            await LoadParentMetersAsync();
             if (_isEditMode)
             {
                 await LoadRoomChildMeterData();
             }
+            else if (_isCopyMode)
+            {
+                await LoadRoomChildMeterDataForCopy();
+            }
             else
             {
-                // 新規登録時にもメーター種別とビル名が選択されていれば子メーターを読み込む
-                await LoadChildMetersByMeterTypeAndBuildingAsync();
+                // 新規登録時にもメーター種別とビル名が選択されていれば親メーターを読み込む
+                await LoadParentMetersAsync();
             }
         }
 
@@ -85,8 +106,8 @@ namespace WaterUtilityCost.Forms
                 if (!_isEditMode && buildingList.Count > 0 && cmbBuildingName.SelectedValue != null)
                 {
                     await LoadRoomsByBuildingAsync();
-                    // メーター種別も選択されていれば子メーターを読み込む
-                    await LoadChildMetersByMeterTypeAndBuildingAsync();
+                    // メーター種別も選択されていれば親メーターを読み込む
+                    await LoadParentMetersAsync();
                 }
             }
             catch (Exception ex)
@@ -103,7 +124,7 @@ namespace WaterUtilityCost.Forms
         private async void CmbBuildingName_SelectedIndexChanged(object? sender, EventArgs e)
         {
             await LoadRoomsByBuildingAsync();
-            await LoadChildMetersByMeterTypeAndBuildingAsync();
+            await LoadParentMetersAsync();
         }
 
         /// <summary>
@@ -146,35 +167,37 @@ namespace WaterUtilityCost.Forms
         /// <param name="e">イベント引数</param>
         private async void CmbRoomName_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            // 部屋名選択時は特に処理しない（メーター種別とビル名で子メーターを表示）
+            await LoadChildMetersByParentMeterAsync();
         }
 
         /// <summary>
-        /// 選択されたメーター種別とビル名に紐づく子メーター一覧を読み込む
+        /// 選択された親メーター名に紐づく子メーター一覧を読み込む
         /// </summary>
-        private async Task LoadChildMetersByMeterTypeAndBuildingAsync()
+        private async Task LoadChildMetersByParentMeterAsync()
         {
             try
             {
-                // メーター種別とビル名が選択されている場合のみ子メーターを表示
-                if (cmbMeterType.SelectedItem == null || cmbBuildingName.SelectedValue == null)
+                if (cmbBuildingName.SelectedValue == null || cmbMeterType.SelectedItem == null)
                 {
                     cmbChildMeter.DataSource = null;
                     return;
                 }
 
-                var selectedMeterType = cmbMeterType.SelectedItem.ToString();
                 var buildingId = (int)cmbBuildingName.SelectedValue;
+                var meterType = cmbMeterType.SelectedItem.ToString() ?? string.Empty;
+
+                int? parentMeterId = null;
+                if (cmbParentMeter.SelectedValue is int parentId)
+                {
+                    parentMeterId = parentId;
+                }
+
                 var childMeters = await ChildMeterDataAccess.GetAllChildMetersAsync();
-                var floors = await FloorDataAccess.GetAllFloorsAsync();
                 
-                // 選択されたメーター種別とビル名が同じ子メーターをフィルタリング
+                // ビルIDとメーター種別でフィルタリングし、親メーターが選択されていればさらに絞り込む
                 var filteredChildMeters = childMeters
-                    .Where(cm => 
-                        cm.BuildingId.HasValue && 
-                        cm.BuildingId.Value == buildingId &&
-                        !string.IsNullOrEmpty(cm.MeterType) &&
-                        cm.MeterType.Equals(selectedMeterType, StringComparison.OrdinalIgnoreCase))
+                    .Where(cm => cm.BuildingId == buildingId && (cm.MeterType ?? "") == meterType)
+                    .Where(cm => !parentMeterId.HasValue || (cm.ParentMeterId.HasValue && cm.ParentMeterId.Value == parentMeterId.Value))
                     .ToList();
                 
                 if (filteredChildMeters.Count == 0)
@@ -186,44 +209,9 @@ namespace WaterUtilityCost.Forms
                 var childMeterList = filteredChildMeters
                     .Select(cm =>
                     {
-                        string displayText;
-                        string roomName = string.Empty;
-                        
-                        if (cm.RoomId.HasValue)
-                        {
-                            var roomIdValue = cm.RoomId.Value;
-                            // 部屋を検索
-                            var floor = floors.FirstOrDefault(f => f.Id == roomIdValue);
-                            
-                            if (floor != null)
-                            {
-                                // 部屋名が空でない場合は部屋名を表示、空の場合は部屋IDを表示
-                                if (!string.IsNullOrWhiteSpace(floor.FloorName))
-                                {
-                                    roomName = floor.FloorName;
-                                }
-                                else
-                                {
-                                    roomName = $"部屋ID: {roomIdValue}";
-                                }
-                            }
-                            else
-                            {
-                                // 部屋が見つからない場合でも、部屋IDを表示
-                                roomName = $"部屋ID: {roomIdValue}";
-                            }
-                        }
-                        
-                        // 部屋名のみを表示する
-                        if (!string.IsNullOrEmpty(roomName))
-                        {
-                            displayText = roomName;
-                        }
-                        else
-                        {
-                            displayText = $"子メーターID: {cm.Id}";
-                        }
-                        
+                        var displayText = string.IsNullOrEmpty(cm.MeterName) 
+                            ? $"子メーターID: {cm.Id}" 
+                            : cm.MeterName;
                         return new
                         {
                             Id = cm.Id,
@@ -285,25 +273,50 @@ namespace WaterUtilityCost.Forms
         /// <param name="e">イベント引数</param>
         private async void CmbMeterType_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            await LoadChildMetersByMeterTypeAndBuildingAsync();
+            await LoadParentMetersAsync();
         }
 
         /// <summary>
-        /// 親メーター一覧を読み込む
+        /// 選択されたビル名とメーター種別に紐づく親メーター一覧を読み込む
         /// </summary>
         private async Task LoadParentMetersAsync()
         {
             try
             {
-                var buildings = await BuildingDataAccess.GetAllBuildingsAsync();
-                var buildingList = buildings.Select(b => new { Id = b.Id, DisplayText = b.Name }).ToList();
+                // ビル名とメーター種別が選択されている場合のみ親メーターを表示
+                if (cmbBuildingName.SelectedValue == null || cmbMeterType.SelectedItem == null)
+                {
+                    cmbParentMeter.DataSource = null;
+                    return;
+                }
+
+                var buildingId = (int)cmbBuildingName.SelectedValue;
+                var selectedMeterType = cmbMeterType.SelectedItem.ToString();
+                var meters = await MeterDataAccess.GetAllMetersAsync();
+                
+                // 選択されたビル名とメーター種別が同じ親メーターをフィルタリング
+                var filteredMeters = meters
+                    .Where(m => 
+                        m.BuildingId.HasValue && 
+                        m.BuildingId.Value == buildingId &&
+                        !string.IsNullOrEmpty(m.MeterType) &&
+                        m.MeterType.Equals(selectedMeterType, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                
+                var meterList = filteredMeters
+                    .Select(m => new
+                    {
+                        Id = m.Id,
+                        DisplayText = string.IsNullOrEmpty(m.MeterName) ? $"親メーターID: {m.Id}" : m.MeterName
+                    })
+                    .ToList();
                 
                 // イベントハンドラーを一時的に無効化
                 cmbParentMeter.SelectedIndexChanged -= CmbParentMeter_SelectedIndexChanged;
                 
                 cmbParentMeter.DisplayMember = "DisplayText";
                 cmbParentMeter.ValueMember = "Id";
-                cmbParentMeter.DataSource = buildingList;
+                cmbParentMeter.DataSource = meterList;
                 
                 // イベントハンドラーを再度有効化
                 cmbParentMeter.SelectedIndexChanged += CmbParentMeter_SelectedIndexChanged;
@@ -315,13 +328,13 @@ namespace WaterUtilityCost.Forms
         }
 
         /// <summary>
-        /// 親メーター選択変更時のイベントハンドラー
+        /// 親メーター名選択変更時のイベントハンドラー
         /// </summary>
         /// <param name="sender">イベント送信元</param>
         /// <param name="e">イベント引数</param>
         private async void CmbParentMeter_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            // 親メーター選択時は特に処理しない（部屋名選択時に子メーターを表示）
+            await LoadChildMetersByParentMeterAsync();
         }
 
         /// <summary>
@@ -334,6 +347,10 @@ namespace WaterUtilityCost.Forms
             // イベントハンドラー
             btnSave.Click += BtnSave_Click;
             btnCancel.Click += BtnCancel_Click;
+            cmbBuildingName.SelectedIndexChanged += CmbBuildingName_SelectedIndexChanged;
+            cmbRoomName.SelectedIndexChanged += CmbRoomName_SelectedIndexChanged;
+            cmbMeterType.SelectedIndexChanged += CmbMeterType_SelectedIndexChanged;
+            cmbParentMeter.SelectedIndexChanged += CmbParentMeter_SelectedIndexChanged;
         }
 
         /// <summary>
@@ -368,32 +385,31 @@ namespace WaterUtilityCost.Forms
                         cmbMeterType.SelectedIndexChanged += CmbMeterType_SelectedIndexChanged;
                     }
                     
-                    // 親メーターを設定（ChildMeterのParentMeterIdから親メーターを取得し、そのビルIDを設定）
+                    // メーター種別とビル名が設定された後に親メーターを読み込む
+                    await LoadParentMetersAsync();
+                    
+                    // 親メーター名を設定（ChildMeterのParentMeterIdから親メーターを取得）
                     if (childMeter.ParentMeterId.HasValue)
                     {
-                        var parentMeter = await MeterDataAccess.GetMeterByIdAsync(childMeter.ParentMeterId.Value);
-                        if (parentMeter != null && parentMeter.BuildingId.HasValue)
-                        {
-                            // イベントハンドラーを一時的に無効化
-                            cmbParentMeter.SelectedIndexChanged -= CmbParentMeter_SelectedIndexChanged;
-                            cmbParentMeter.SelectedValue = parentMeter.BuildingId.Value;
-                            // イベントハンドラーを再度有効化
-                            cmbParentMeter.SelectedIndexChanged += CmbParentMeter_SelectedIndexChanged;
-                        }
+                        // イベントハンドラーを一時的に無効化
+                        cmbParentMeter.SelectedIndexChanged -= CmbParentMeter_SelectedIndexChanged;
+                        cmbParentMeter.SelectedValue = childMeter.ParentMeterId.Value;
+                        // イベントハンドラーを再度有効化
+                        cmbParentMeter.SelectedIndexChanged += CmbParentMeter_SelectedIndexChanged;
+                        
+                        // 親メーター名が設定された後に子メーターを読み込む
+                        await LoadChildMetersByParentMeterAsync();
                     }
                     
-                    // 部屋名を設定
-                    if (childMeter.RoomId.HasValue)
+                    // 部屋名を設定（RoomChildMeterのFloorIdから取得）
+                    if (_currentRoomChildMeter.FloorId > 0)
                     {
                         // イベントハンドラーを一時的に無効化
                         cmbRoomName.SelectedIndexChanged -= CmbRoomName_SelectedIndexChanged;
-                        cmbRoomName.SelectedValue = childMeter.RoomId.Value;
+                        cmbRoomName.SelectedValue = _currentRoomChildMeter.FloorId;
                         // イベントハンドラーを再度有効化
                         cmbRoomName.SelectedIndexChanged += CmbRoomName_SelectedIndexChanged;
                     }
-                    
-                    // メーター種別とビル名が設定された後に子メーターを読み込む
-                    await LoadChildMetersByMeterTypeAndBuildingAsync();
                     
                     // 子メーターを設定
                     if (cmbChildMeter.Items.Count > 0)
@@ -402,6 +418,58 @@ namespace WaterUtilityCost.Forms
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// コピーモード用のデータ読み込み（ビル名・部屋名・メーター種別・親メーターをコピーし、子メーターは未選択）
+        /// </summary>
+        private async Task LoadRoomChildMeterDataForCopy()
+        {
+            if (_currentRoomChildMeter == null) return;
+
+            // ChildMeterから情報を取得
+            var childMeter = await ChildMeterDataAccess.GetChildMeterByIdAsync(_currentRoomChildMeter.ChildMeterId);
+            if (childMeter == null) return;
+
+            // ビル名を設定
+            if (childMeter.BuildingId.HasValue)
+            {
+                cmbBuildingName.SelectedIndexChanged -= CmbBuildingName_SelectedIndexChanged;
+                cmbBuildingName.SelectedValue = childMeter.BuildingId.Value;
+                cmbBuildingName.SelectedIndexChanged += CmbBuildingName_SelectedIndexChanged;
+                await LoadRoomsByBuildingAsync();
+            }
+
+            // メーター種別を設定
+            if (!string.IsNullOrEmpty(childMeter.MeterType))
+            {
+                cmbMeterType.SelectedIndexChanged -= CmbMeterType_SelectedIndexChanged;
+                cmbMeterType.SelectedItem = childMeter.MeterType;
+                cmbMeterType.SelectedIndexChanged += CmbMeterType_SelectedIndexChanged;
+            }
+
+            // メーター種別とビル名が設定された後に親メーターを読み込む
+            await LoadParentMetersAsync();
+
+            // 親メーター名を設定
+            if (childMeter.ParentMeterId.HasValue)
+            {
+                cmbParentMeter.SelectedIndexChanged -= CmbParentMeter_SelectedIndexChanged;
+                cmbParentMeter.SelectedValue = childMeter.ParentMeterId.Value;
+                cmbParentMeter.SelectedIndexChanged += CmbParentMeter_SelectedIndexChanged;
+                await LoadChildMetersByParentMeterAsync();
+            }
+
+            // 部屋名を設定
+            if (_currentRoomChildMeter.FloorId > 0)
+            {
+                cmbRoomName.SelectedIndexChanged -= CmbRoomName_SelectedIndexChanged;
+                cmbRoomName.SelectedValue = _currentRoomChildMeter.FloorId;
+                cmbRoomName.SelectedIndexChanged += CmbRoomName_SelectedIndexChanged;
+            }
+
+            // 子メーターは未選択にする（新規入力）
+            cmbChildMeter.SelectedIndex = -1;
         }
 
         /// <summary>
@@ -431,12 +499,12 @@ namespace WaterUtilityCost.Forms
                 }
                 if (cmbParentMeter.SelectedValue == null)
                 {
-                    MessageBox.Show("親メーターを選択してください。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("親メーター名を選択してください。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if (cmbChildMeter.SelectedValue == null)
                 {
-                    MessageBox.Show("子メーターを選択してください。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("子メーター名を選択してください。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 

@@ -126,7 +126,7 @@ Clients (1) ──< (N) Contracts (BillingClientId)
 - 子メータ使用終了日（ChildMeterEndDate）
 - 親メータ使用開始日（ParentMeterStartDate）
 - 親メータ使用終了日（ParentMeterEndDate）
-- 決定請求日（ConfirmedBillingDate）
+- 請求予定日（ConfirmedBillingDate）
 
 **CSVエクスポート**:
 - UTF-8 BOM付きCSV形式

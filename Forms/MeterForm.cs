@@ -15,6 +15,7 @@ namespace WaterUtilityCost.Forms
     {
         private Meter _currentMeter;
         private bool _isEditMode;
+        private bool _isCopyMode;
 
         public MeterForm()
         {
@@ -31,15 +32,34 @@ namespace WaterUtilityCost.Forms
             _isEditMode = true;
         }
 
+        /// <summary>
+        /// 既存の親メーター情報をコピーして新規登録画面を開くコンストラクタ
+        /// </summary>
+        /// <param name="meter">コピー元の親メーター情報</param>
+        /// <param name="isCopyMode">コピーモード</param>
+        public MeterForm(Meter meter, bool isCopyMode) : this()
+        {
+            if (isCopyMode)
+            {
+                _currentMeter = meter;
+                _isEditMode = false;
+                _isCopyMode = true;
+                this.Text = "メーター情報登録";
+            }
+        }
+
         private async void MeterForm_Load(object? sender, EventArgs e)
         {
             await LoadBuildingNamesAsync();
             await LoadContractorsAsync();
             
-            // 編集モードの場合はデータを読み込む
             if (_isEditMode)
             {
                 LoadMeterData();
+            }
+            else if (_isCopyMode)
+            {
+                LoadMeterDataForCopy();
             }
         }
 
@@ -99,6 +119,51 @@ namespace WaterUtilityCost.Forms
             btnCancel.Click += BtnCancel_Click;
         }
 
+        /// <summary>
+        /// コピーモード用のデータ読み込み（ビル名・メーター種別・管理番号・業者をコピーし、親メーター名は空にする）
+        /// </summary>
+        private void LoadMeterDataForCopy()
+        {
+            if (_currentMeter == null) return;
+
+            if (_currentMeter.BuildingId.HasValue)
+            {
+                cmbBuilding.SelectedValue = _currentMeter.BuildingId.Value;
+            }
+            cmbMeterType.Text = _currentMeter.MeterType ?? string.Empty;
+            txtManagementNumber.Text = _currentMeter.ManagementNumber ?? string.Empty;
+
+            if (cmbContractor.Items.Count > 0)
+            {
+                if (_currentMeter.ContractorId.HasValue)
+                {
+                    for (int i = 0; i < cmbContractor.Items.Count; i++)
+                    {
+                        var item = cmbContractor.Items[i];
+                        var idProperty = item.GetType().GetProperty("Id");
+                        if (idProperty != null)
+                        {
+                            var id = idProperty.GetValue(item) as int?;
+                            if (id == _currentMeter.ContractorId.Value)
+                            {
+                                cmbContractor.SelectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    cmbContractor.SelectedIndex = 0;
+                }
+            }
+
+            txtMeterName.Text = string.Empty;
+        }
+
+        /// <summary>
+        /// メーター情報をフォームに読み込む
+        /// </summary>
         private void LoadMeterData()
         {
             if (_currentMeter != null)
@@ -108,6 +173,7 @@ namespace WaterUtilityCost.Forms
                     cmbBuilding.SelectedValue = _currentMeter.BuildingId.Value;
                 }
                 cmbMeterType.Text = _currentMeter.MeterType;
+                txtMeterName.Text = _currentMeter.MeterName;
                 txtManagementNumber.Text = _currentMeter.ManagementNumber;
                 
                 // 業者選択（コンボボックスにアイテムが存在する場合のみ）
@@ -164,6 +230,7 @@ namespace WaterUtilityCost.Forms
                 _currentMeter.BuildingId = (int?)cmbBuilding.SelectedValue;
                 _currentMeter.MeterId = string.Empty;
                 _currentMeter.MeterType = cmbMeterType.Text.Trim();
+                _currentMeter.MeterName = txtMeterName.Text.Trim();
                 _currentMeter.ManagementNumber = txtManagementNumber.Text.Trim();
                 
                 // 業者IDを取得

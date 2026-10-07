@@ -50,6 +50,9 @@ namespace WaterUtilityCost.Forms
             // _dgvBuildings
             // 
             this._dgvBuildings.AllowUserToAddRows = false;
+            this._dgvBuildings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this._dgvBuildings.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this._dgvBuildings.ColumnHeadersHeight = 29;
             this._dgvBuildings.Location = new System.Drawing.Point(20, 70);

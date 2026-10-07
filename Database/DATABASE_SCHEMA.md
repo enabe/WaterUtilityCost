@@ -30,13 +30,10 @@
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Buildings]') AND type in (N'U'))
 CREATE TABLE [dbo].[Buildings] (
     [Id] INT IDENTITY(1,1) PRIMARY KEY,
+    [BuildingId] NVARCHAR(50),
     [Name] NVARCHAR(100) NOT NULL,
     [Address] NVARCHAR(200),
     [Floors] INT NOT NULL,
-    [BuiltDate] DATETIME,
-    [Area] DECIMAL(18,2),
-    [Owner] NVARCHAR(100),
-    [Contact] NVARCHAR(50),
     [CreatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
     [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE()
 )
@@ -47,13 +44,10 @@ CREATE TABLE [dbo].[Buildings] (
 | カラム名 | データ型 | NULL許可 | 説明 |
 |---------|---------|---------|------|
 | Id | INT | NO | 主キー（自動採番） |
+| BuildingId | NVARCHAR(50) | YES | ビルID |
 | Name | NVARCHAR(100) | NO | ビル名 |
 | Address | NVARCHAR(200) | YES | 住所 |
 | Floors | INT | NO | 階数 |
-| BuiltDate | DATETIME | YES | 建築日 |
-| Area | DECIMAL(18,2) | YES | 面積 |
-| Owner | NVARCHAR(100) | YES | 所有者 |
-| Contact | NVARCHAR(50) | YES | 連絡先 |
 | CreatedAt | DATETIME | NO | 作成日時（デフォルト: GETDATE()） |
 | UpdatedAt | DATETIME | NO | 更新日時（デフォルト: GETDATE()） |
 
@@ -220,8 +214,10 @@ CREATE TABLE [dbo].[InvoiceDetails] (
     [BuildingName] NVARCHAR(100),
     [Lessee] NVARCHAR(100),
     [RoomNumber] NVARCHAR(50),
+    [RoomArea] DECIMAL(18,2),
     [Category] NVARCHAR(50),
     [Content] NVARCHAR(200),
+    [ChildMeterUsage] DECIMAL(18,2),
     [UsageAmount] DECIMAL(18,2),
     [Unit] NVARCHAR(20),
     [TaxInclusiveAmount] DECIMAL(18,2),
@@ -246,8 +242,10 @@ CREATE TABLE [dbo].[InvoiceDetails] (
 | BuildingName | NVARCHAR(100) | YES | 建物名称 |
 | Lessee | NVARCHAR(100) | YES | 借主 |
 | RoomNumber | NVARCHAR(50) | YES | 部屋番号 |
+| RoomArea | DECIMAL(18,2) | YES | 面積 |
 | Category | NVARCHAR(50) | YES | 種別 |
 | Content | NVARCHAR(200) | YES | 内容 |
+| ChildMeterUsage | DECIMAL(18,2) | YES | 子メーター使用量 |
 | UsageAmount | DECIMAL(18,2) | YES | 使用量 |
 | Unit | NVARCHAR(20) | YES | 単位 |
 | TaxInclusiveAmount | DECIMAL(18,2) | YES | 税込金額 |
@@ -256,7 +254,7 @@ CREATE TABLE [dbo].[InvoiceDetails] (
 | ChildMeterEndDate | DATETIME | YES | 子メータ使用終了日 |
 | ParentMeterStartDate | DATETIME | YES | 親メータ使用開始日 |
 | ParentMeterEndDate | DATETIME | YES | 親メータ使用終了日 |
-| ConfirmedBillingDate | DATETIME | YES | 決定請求日 |
+| ConfirmedBillingDate | DATETIME | YES | 請求予定日 |
 | CreatedAt | DATETIME | NO | 作成日時（デフォルト: GETDATE()） |
 | UpdatedAt | DATETIME | NO | 更新日時（デフォルト: GETDATE()） |
 
@@ -356,6 +354,8 @@ CREATE TABLE [dbo].[GasBillings] (
     [Id] INT IDENTITY(1,1) PRIMARY KEY,
     [BillingYearMonth] NVARCHAR(7) NOT NULL,
     [BuildingName] NVARCHAR(100) NOT NULL,
+    [FloorName] NVARCHAR(100) NOT NULL,
+    [ParentMeterId] INT NULL,
     [District] NVARCHAR(50) NOT NULL,
     [UsageAmount] DECIMAL(18,2) NOT NULL,
     [StartDate] DATETIME NOT NULL,
@@ -376,6 +376,8 @@ CREATE TABLE [dbo].[GasBillings] (
 | Id | INT | NO | 主キー（自動採番） |
 | BillingYearMonth | NVARCHAR(7) | NO | 請求年月（例: "2024-01"） |
 | BuildingName | NVARCHAR(100) | NO | ビル名 |
+| FloorName | NVARCHAR(100) | NO | 階名 |
+| ParentMeterId | INT | YES | 親メーターID |
 | District | NVARCHAR(50) | NO | 区画 |
 | UsageAmount | DECIMAL(18,2) | NO | 使用量 |
 | StartDate | DATETIME | NO | 開始日 |

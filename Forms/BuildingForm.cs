@@ -78,11 +78,6 @@ namespace WaterUtilityCost.Forms
             txtName.Text = _currentBuilding.Name;
             txtAddress.Text = _currentBuilding.Address;
             txtFloors.Text = _currentBuilding.Floors.ToString();
-            if (_currentBuilding.BuiltDate != DateTime.MinValue)
-                txtBuiltDate.Text = _currentBuilding.BuiltDate.ToString("yyyy-MM-dd");
-            txtArea.Text = _currentBuilding.Area.ToString();
-            txtOwner.Text = _currentBuilding.Owner;
-            txtContact.Text = _currentBuilding.Contact;
         }
 
         /// <summary>
@@ -94,22 +89,6 @@ namespace WaterUtilityCost.Forms
         {
             try
             {
-                DateTime builtDate = DateTime.MinValue;
-                if (!string.IsNullOrWhiteSpace(txtBuiltDate.Text))
-                {
-                    // 複数の日付形式に対応
-                    string[] formats = { "yyyy-MM-dd", "yyyy/MM/dd", "yyyyMMdd", "yyyy-M-d", "yyyy/M/d" };
-                    if (!DateTime.TryParseExact(txtBuiltDate.Text.Trim(), formats, null, System.Globalization.DateTimeStyles.None, out builtDate))
-                    {
-                        // TryParseExactで失敗した場合、通常のTryParseを試す
-                        if (!DateTime.TryParse(txtBuiltDate.Text.Trim(), out builtDate))
-                        {
-                            // 日付形式が正しくない場合でも、未入力として扱う（エラーにしない）
-                            builtDate = DateTime.MinValue;
-                        }
-                    }
-                }
-
                 // 階数のバリデーション
                 if (string.IsNullOrWhiteSpace(txtFloors.Text))
                 {
@@ -128,11 +107,7 @@ namespace WaterUtilityCost.Forms
                     BuildingId = txtBuildingId.Text.Trim(),
                     Name = txtName.Text,
                     Address = txtAddress.Text,
-                    Floors = floors,
-                    BuiltDate = builtDate,
-                    Area = decimal.TryParse(txtArea.Text, out var area) ? area : 0,
-                    Owner = txtOwner.Text,
-                    Contact = txtContact.Text
+                    Floors = floors
                 };
 
                 if (_isEditMode && _currentBuilding != null)

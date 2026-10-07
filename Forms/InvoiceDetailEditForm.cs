@@ -14,9 +14,11 @@ namespace WaterUtilityCost.Forms
     {
         private InvoiceDetail _currentInvoiceDetail;
         private bool _isEditMode;
+        private readonly string? _defaultBillingYearMonth;
 
-        public InvoiceDetailEditForm()
+        public InvoiceDetailEditForm(string? defaultBillingYearMonth = null)
         {
+            _defaultBillingYearMonth = defaultBillingYearMonth;
             InitializeComponent();
             InitializeComponentAdditional();
             _isEditMode = false;
@@ -47,8 +49,10 @@ namespace WaterUtilityCost.Forms
                     BuildingName = invoiceDetail.BuildingName,
                     Lessee = invoiceDetail.Lessee,
                     RoomNumber = invoiceDetail.RoomNumber,
+            RoomArea = invoiceDetail.RoomArea,
                     Category = invoiceDetail.Category,
                     Content = invoiceDetail.Content,
+                    ChildMeterUsage = invoiceDetail.ChildMeterUsage,
                     UsageAmount = invoiceDetail.UsageAmount,
                     Unit = invoiceDetail.Unit,
                     TaxInclusiveAmount = invoiceDetail.TaxInclusiveAmount,
@@ -57,7 +61,8 @@ namespace WaterUtilityCost.Forms
                     ChildMeterEndDate = invoiceDetail.ChildMeterEndDate,
                     ParentMeterStartDate = invoiceDetail.ParentMeterStartDate,
                     ParentMeterEndDate = invoiceDetail.ParentMeterEndDate,
-                    ConfirmedBillingDate = invoiceDetail.ConfirmedBillingDate
+                    ConfirmedBillingDate = invoiceDetail.ConfirmedBillingDate,
+                    BillingYearMonth = invoiceDetail.BillingYearMonth
                 };
                 LoadInvoiceDetailData();
             }
@@ -96,9 +101,11 @@ namespace WaterUtilityCost.Forms
                 txtBuildingName.Text = _currentInvoiceDetail.BuildingName;
                 txtLessee.Text = _currentInvoiceDetail.Lessee;
                 txtRoomNumber.Text = _currentInvoiceDetail.RoomNumber;
+                txtRoomArea.Text = _currentInvoiceDetail.RoomArea?.ToString() ?? string.Empty;
                 txtCategory.Text = _currentInvoiceDetail.Category;
                 txtContent.Text = _currentInvoiceDetail.Content;
-                txtUsageAmount.Text = _currentInvoiceDetail.UsageAmount.ToString();
+                txtChildMeterUsage.Text = _currentInvoiceDetail.ChildMeterUsage?.ToString() ?? string.Empty;
+                txtUsageAmount.Text = _currentInvoiceDetail.UsageAmount?.ToString() ?? string.Empty;
                 txtUnit.Text = _currentInvoiceDetail.Unit;
                 txtTaxInclusiveAmount.Text = _currentInvoiceDetail.TaxInclusiveAmount.ToString();
                 txtTaxRate.Text = _currentInvoiceDetail.TaxRate.ToString();
@@ -106,8 +113,15 @@ namespace WaterUtilityCost.Forms
                 txtChildMeterEndDate.Text = _currentInvoiceDetail.ChildMeterEndDate?.ToString("yyyy-MM-dd") ?? "";
                 txtParentMeterStartDate.Text = _currentInvoiceDetail.ParentMeterStartDate?.ToString("yyyy-MM-dd") ?? "";
                 txtParentMeterEndDate.Text = _currentInvoiceDetail.ParentMeterEndDate?.ToString("yyyy-MM-dd") ?? "";
+                txtBillingYearMonth.Text = !string.IsNullOrWhiteSpace(_currentInvoiceDetail.BillingYearMonth)
+                    ? _currentInvoiceDetail.BillingYearMonth
+                    : (_defaultBillingYearMonth ?? string.Empty);
                 dtpConfirmedBillingDate.Value = _currentInvoiceDetail.ConfirmedBillingDate ?? DateTime.Now;
                 dtpConfirmedBillingDate.Checked = _currentInvoiceDetail.ConfirmedBillingDate.HasValue;
+            }
+            else if (!string.IsNullOrWhiteSpace(_defaultBillingYearMonth))
+            {
+                txtBillingYearMonth.Text = _defaultBillingYearMonth;
             }
         }
 
@@ -126,11 +140,37 @@ namespace WaterUtilityCost.Forms
                 _currentInvoiceDetail.BuildingName = txtBuildingName.Text.Trim();
                 _currentInvoiceDetail.Lessee = txtLessee.Text.Trim();
                 _currentInvoiceDetail.RoomNumber = txtRoomNumber.Text.Trim();
+                if (string.IsNullOrWhiteSpace(txtRoomArea.Text))
+                {
+                    _currentInvoiceDetail.RoomArea = null;
+                }
+                else
+                {
+                    decimal.TryParse(txtRoomArea.Text, out var roomArea);
+                    _currentInvoiceDetail.RoomArea = roomArea;
+                }
                 _currentInvoiceDetail.Category = txtCategory.Text.Trim();
                 _currentInvoiceDetail.Content = txtContent.Text.Trim();
                 
-                decimal.TryParse(txtUsageAmount.Text, out decimal usageAmount);
-                _currentInvoiceDetail.UsageAmount = usageAmount;
+                if (string.IsNullOrWhiteSpace(txtChildMeterUsage.Text))
+                {
+                    _currentInvoiceDetail.ChildMeterUsage = null;
+                }
+                else
+                {
+                    decimal.TryParse(txtChildMeterUsage.Text, out var childMeterUsage);
+                    _currentInvoiceDetail.ChildMeterUsage = childMeterUsage;
+                }
+
+                if (string.IsNullOrWhiteSpace(txtUsageAmount.Text))
+                {
+                    _currentInvoiceDetail.UsageAmount = null;
+                }
+                else
+                {
+                    decimal.TryParse(txtUsageAmount.Text, out var usageAmount);
+                    _currentInvoiceDetail.UsageAmount = usageAmount;
+                }
                 
                 _currentInvoiceDetail.Unit = txtUnit.Text.Trim();
                 
@@ -161,6 +201,21 @@ namespace WaterUtilityCost.Forms
                 _currentInvoiceDetail.ParentMeterEndDate = parentMeterEndDate;
 
                 _currentInvoiceDetail.ConfirmedBillingDate = dtpConfirmedBillingDate.Checked ? dtpConfirmedBillingDate.Value : (DateTime?)null;
+
+                var billingYearMonth = txtBillingYearMonth.Text.Trim();
+                if (string.IsNullOrWhiteSpace(billingYearMonth) && !string.IsNullOrWhiteSpace(_defaultBillingYearMonth))
+                {
+                    billingYearMonth = _defaultBillingYearMonth;
+                }
+
+                if (!string.IsNullOrWhiteSpace(billingYearMonth)
+                    && !System.Text.RegularExpressions.Regex.IsMatch(billingYearMonth, @"^\d{4}-\d{2}$"))
+                {
+                    MessageBox.Show("請求年月はYYYY-MM形式で入力してください。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                _currentInvoiceDetail.BillingYearMonth = billingYearMonth;
 
                 // 保存処理
                 if (_isEditMode)

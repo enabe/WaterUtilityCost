@@ -44,7 +44,10 @@ namespace WaterUtilityCost.Forms
             _btnBillingDataRegistration.Click += BtnBillingDataRegistration_Click;
             _btnInvoicePrint.Click += BtnInvoicePrint_Click;
             _btnCreateScreenSpecification.Click += BtnCreateScreenSpecification_Click;
-            _btnDeleteAllData.Click += BtnDeleteAllData_Click;
+            // データ削除ボタンは誤操作による全データ消失を防ぐため非表示のままにする
+            _btnDeleteAllData.Visible = false;
+            _btnDeleteAllData.Enabled = false;
+            _btnInitialDataRegistration.Click += BtnInitialDataRegistration_Click;
             _btnExit.Click += BtnExit_Click;
         }
         
@@ -176,7 +179,7 @@ namespace WaterUtilityCost.Forms
         }
 
         /// <summary>
-        /// 電気子メータ検針データ管理ボタンのクリックイベントハンドラー
+        /// 電気子メーター検針データ管理ボタンのクリックイベントハンドラー
         /// </summary>
         /// <param name="sender">イベント送信元</param>
         /// <param name="e">イベント引数</param>
@@ -187,7 +190,7 @@ namespace WaterUtilityCost.Forms
         }
 
         /// <summary>
-        /// ガス子メータ検針データ管理ボタンのクリックイベントハンドラー
+        /// ガス子メーター検針データ管理ボタンのクリックイベントハンドラー
         /// </summary>
         /// <param name="sender">イベント送信元</param>
         /// <param name="e">イベント引数</param>
@@ -198,7 +201,7 @@ namespace WaterUtilityCost.Forms
         }
 
         /// <summary>
-        /// 水道子メータ検針データ管理ボタンのクリックイベントハンドラー
+        /// 水道子メーター検針データ管理ボタンのクリックイベントハンドラー
         /// </summary>
         /// <param name="sender">イベント送信元</param>
         /// <param name="e">イベント引数</param>
@@ -261,13 +264,24 @@ namespace WaterUtilityCost.Forms
         }
 
         /// <summary>
-        /// 請求データ登録ボタンのクリックイベントハンドラー
+        /// 請求明細データ作成ボタンのクリックイベントハンドラー
         /// </summary>
         /// <param name="sender">イベント送信元</param>
         /// <param name="e">イベント引数</param>
         private void BtnBillingDataRegistration_Click(object? sender, EventArgs e)
         {
             var form = new BillingDataRegistrationForm();
+            form.ShowDialog();
+        }
+
+        /// <summary>
+        /// 初期データ登録ボタンのクリックイベントハンドラー
+        /// </summary>
+        /// <param name="sender">イベント送信元</param>
+        /// <param name="e">イベント引数</param>
+        private void BtnInitialDataRegistration_Click(object? sender, EventArgs e)
+        {
+            var form = new InitialDataRegistrationForm();
             form.ShowDialog();
         }
 

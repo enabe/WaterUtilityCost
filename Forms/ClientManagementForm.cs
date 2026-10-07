@@ -14,6 +14,23 @@ namespace WaterUtilityCost.Forms
     /// </summary>
     public partial class ClientManagementForm : Form
     {
+        private int? _pendingSelectId;
+        private int? _pendingScrollIndex;
+        private bool _suppressDisplay;
+        private string _sortColumn = "Id";
+        private bool _sortAscending;
+
+        private sealed class ClientGridRow
+        {
+            public int Id { get; set; }
+            public string 取引先名 { get; set; } = string.Empty;
+            public string 取引先対象 { get; set; } = string.Empty;
+            public string ビル名 { get; set; } = string.Empty;
+            public string 部屋名 { get; set; } = string.Empty;
+            public string 郵便番号 { get; set; } = string.Empty;
+            public string 住所 { get; set; } = string.Empty;
+            public string 電話番号 { get; set; } = string.Empty;
+        }
 
         public ClientManagementForm()
         {
@@ -33,6 +50,10 @@ namespace WaterUtilityCost.Forms
             _btnEdit.Click += BtnEdit_Click;
             _btnDelete.Click += BtnDelete_Click;
             _btnRefresh.Click += BtnRefresh_Click;
+            _btnCopyAndAdd.Click += BtnCopyAndAdd_Click;
+            _dgvClients.DoubleClick += DgvClients_DoubleClick;
+            _dgvClients.DataBindingComplete += DgvClients_DataBindingComplete;
+            _dgvClients.ColumnHeaderMouseClick += DgvClients_ColumnHeaderMouseClick;
         }
 
         private async void ClientManagementForm_Load(object? sender, EventArgs e)
@@ -40,21 +61,35 @@ namespace WaterUtilityCost.Forms
             await LoadClientsAsync();
         }
 
-        private async Task LoadClientsAsync()
+        private async Task LoadClientsAsync(int? selectId = null, int? scrollIndex = null)
         {
             try
             {
                 var clients = await ClientDataAccess.GetAllClientsAsync();
 
-                _dgvClients!.DataSource = clients.Select(c => new
+                if (selectId.HasValue)
+                {
+                    _pendingSelectId = selectId;
+                    _pendingScrollIndex = scrollIndex;
+                    _suppressDisplay = true;
+                    _dgvClients.SuspendLayout();
+                    _dgvClients.Visible = false;
+                }
+
+                var rows = clients.Select(c => new ClientGridRow
                 {
                     Id = c.Id,
-                    取引先名 = c.Name,
+                    取引先名 = c.Name ?? "",
                     取引先対象 = GetClientTargetText(c),
-                    郵便番号 = c.PostalCode,
-                    住所 = c.Address,
-                    電話番号 = c.Phone
-                }).OrderByDescending(x => x.Id).ToList();
+                    ビル名 = c.BuildingName ?? "",
+                    部屋名 = c.RoomName ?? "",
+                    郵便番号 = c.PostalCode ?? "",
+                    住所 = c.Address ?? "",
+                    電話番号 = c.Phone ?? ""
+                });
+
+                _dgvClients!.DataSource = ApplySort(rows).ToList();
+                UpdateSortGlyph();
 
                 // ID列の幅を狭く設定
                 if (_dgvClients.Columns["Id"] != null)
@@ -67,11 +102,150 @@ namespace WaterUtilityCost.Forms
                 {
                     _dgvClients.Columns["取引先名"].Width = 150;
                 }
+
+                if (!selectId.HasValue)
+                {
+                    _suppressDisplay = false;
+                    _dgvClients.Visible = true;
+                    _dgvClients.ResumeLayout();
+                }
             }
             catch (Exception ex)
             {
+                if (_suppressDisplay)
+                {
+                    _dgvClients.Visible = true;
+                    _dgvClients.ResumeLayout();
+                    _suppressDisplay = false;
+                }
                 MessageBox.Show($"データの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private IEnumerable<ClientGridRow> ApplySort(IEnumerable<ClientGridRow> source)
+        {
+            return (_sortColumn, _sortAscending) switch
+            {
+                ("Id", true) => source.OrderBy(x => x.Id),
+                ("Id", false) => source.OrderByDescending(x => x.Id),
+                ("取引先名", true) => source.OrderBy(x => x.取引先名),
+                ("取引先名", false) => source.OrderByDescending(x => x.取引先名),
+                ("取引先対象", true) => source.OrderBy(x => x.取引先対象),
+                ("取引先対象", false) => source.OrderByDescending(x => x.取引先対象),
+                ("ビル名", true) => source.OrderBy(x => x.ビル名),
+                ("ビル名", false) => source.OrderByDescending(x => x.ビル名),
+                ("部屋名", true) => source.OrderBy(x => x.部屋名),
+                ("部屋名", false) => source.OrderByDescending(x => x.部屋名),
+                ("郵便番号", true) => source.OrderBy(x => x.郵便番号),
+                ("郵便番号", false) => source.OrderByDescending(x => x.郵便番号),
+                ("住所", true) => source.OrderBy(x => x.住所),
+                ("住所", false) => source.OrderByDescending(x => x.住所),
+                ("電話番号", true) => source.OrderBy(x => x.電話番号),
+                ("電話番号", false) => source.OrderByDescending(x => x.電話番号),
+                _ => source.OrderByDescending(x => x.Id)
+            };
+        }
+
+        private void UpdateSortGlyph()
+        {
+            foreach (DataGridViewColumn column in _dgvClients.Columns)
+            {
+                column.HeaderCell.SortGlyphDirection = SortOrder.None;
+            }
+
+            if (_dgvClients.Columns.Contains(_sortColumn))
+            {
+                _dgvClients.Columns[_sortColumn].HeaderCell.SortGlyphDirection =
+                    _sortAscending ? SortOrder.Ascending : SortOrder.Descending;
+            }
+        }
+
+        private async void DgvClients_ColumnHeaderMouseClick(object? sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex < 0)
+            {
+                return;
+            }
+
+            var clickedColumnName = _dgvClients.Columns[e.ColumnIndex].Name;
+            if (_sortColumn == clickedColumnName)
+            {
+                _sortAscending = !_sortAscending;
+            }
+            else
+            {
+                _sortColumn = clickedColumnName;
+                _sortAscending = true;
+            }
+
+            int? selectedId = null;
+            int? currentScrollIndex = null;
+            if (_dgvClients.SelectedRows.Count > 0 &&
+                _dgvClients.SelectedRows[0].Cells["Id"].Value is int id)
+            {
+                selectedId = id;
+            }
+
+            if (_dgvClients.Rows.Count > 0)
+            {
+                currentScrollIndex = _dgvClients.FirstDisplayedScrollingRowIndex;
+            }
+
+            await LoadClientsAsync(selectedId, currentScrollIndex);
+        }
+
+        private void DgvClients_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            if (!_pendingSelectId.HasValue)
+            {
+                return;
+            }
+
+            var selectId = _pendingSelectId.Value;
+            _pendingSelectId = null;
+            var scrollIndex = _pendingScrollIndex;
+            _pendingScrollIndex = null;
+            ApplySelectionAndScroll(selectId, scrollIndex);
+        }
+
+        private void ApplySelectionAndScroll(int selectId, int? scrollIndex)
+        {
+            _dgvClients.BeginInvoke(new Action(() =>
+            {
+                var targetRow = _dgvClients.Rows
+                    .Cast<DataGridViewRow>()
+                    .FirstOrDefault(row =>
+                        row.Cells["Id"].Value != null
+                        && row.Cells["Id"].Value != DBNull.Value
+                        && Convert.ToInt32(row.Cells["Id"].Value) == selectId);
+                if (targetRow == null)
+                {
+                    if (_suppressDisplay)
+                    {
+                        _dgvClients.Visible = true;
+                        _dgvClients.ResumeLayout();
+                        _suppressDisplay = false;
+                    }
+                    return;
+                }
+
+                _dgvClients.ClearSelection();
+                targetRow.Selected = true;
+                _dgvClients.CurrentCell = targetRow.Cells["Id"];
+
+                var index = scrollIndex ?? targetRow.Index;
+                if (index >= 0 && index < _dgvClients.Rows.Count)
+                {
+                    _dgvClients.FirstDisplayedScrollingRowIndex = index;
+                }
+
+                if (_suppressDisplay)
+                {
+                    _dgvClients.Visible = true;
+                    _dgvClients.ResumeLayout();
+                    _suppressDisplay = false;
+                }
+            }));
         }
 
         private async void BtnAdd_Click(object? sender, EventArgs e)
@@ -92,14 +266,15 @@ namespace WaterUtilityCost.Forms
             }
 
             var selectedRow = _dgvClients.SelectedRows[0];
-            var id = (int)selectedRow.Cells["Id"].Value;
+            var id = Convert.ToInt32(selectedRow.Cells["Id"].Value);
+            var currentScrollIndex = _dgvClients.FirstDisplayedScrollingRowIndex;
             var client = await ClientDataAccess.GetClientByIdAsync(id);
             if (client != null)
             {
                 var form = new ClientForm(client);
                 if (form.ShowDialog() == DialogResult.OK)
                 {
-                    await LoadClientsAsync();
+                    await LoadClientsAsync(id, currentScrollIndex);
                 }
             }
         }
@@ -119,7 +294,7 @@ namespace WaterUtilityCost.Forms
             {
                 try
                 {
-                    var id = (int)selectedRow.Cells["Id"].Value;
+                    var id = Convert.ToInt32(selectedRow.Cells["Id"].Value);
                     var success = await ClientDataAccess.DeleteClientAsync(id);
                     if (success)
                     {
@@ -138,9 +313,51 @@ namespace WaterUtilityCost.Forms
             }
         }
 
+        private async void BtnCopyAndAdd_Click(object? sender, EventArgs e)
+        {
+            if (_dgvClients!.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("コピーして追加する取引先を選択してください。", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var selectedRow = _dgvClients.SelectedRows[0];
+            var id = Convert.ToInt32(selectedRow.Cells["Id"].Value);
+            var client = await ClientDataAccess.GetClientByIdAsync(id);
+            if (client != null)
+            {
+                var form = new ClientForm(client, true);
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    await LoadClientsAsync();
+                }
+            }
+        }
+
         private async void BtnRefresh_Click(object? sender, EventArgs e)
         {
             await LoadClientsAsync();
+        }
+
+        private async void DgvClients_DoubleClick(object? sender, EventArgs e)
+        {
+            if (_dgvClients!.SelectedRows.Count == 0)
+            {
+                return;
+            }
+
+            var selectedRow = _dgvClients.SelectedRows[0];
+            var id = Convert.ToInt32(selectedRow.Cells["Id"].Value);
+            var currentScrollIndex = _dgvClients.FirstDisplayedScrollingRowIndex;
+            var client = await ClientDataAccess.GetClientByIdAsync(id);
+            if (client != null)
+            {
+                var form = new ClientForm(client);
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    await LoadClientsAsync(id, currentScrollIndex);
+                }
+            }
         }
 
         private string GetClientTargetText(Client client)

@@ -31,7 +31,7 @@ namespace WaterUtilityCost
                 {
                     var message = $"データベースに接続できません。\n\n接続文字列: {DatabaseHelper.ConnectionString}\n\nエラー詳細:\n{errorMessage}\n\n確認事項:\n" +
                         "1. SQL Server Expressが起動しているか確認してください\n" +
-                        "2. インスタンス名 'ROLAN-PC\\SQLEXPRESS' が正しいか確認してください\n" +
+                        "2. インスタンス名 '.\\SQLEXPRESS01' が正しいか確認してください\n" +
                         "3. SQL Server Browserサービスが起動しているか確認してください\n" +
                         "4. Windows認証でアクセス権限があるか確認してください";
                     MessageBox.Show(message, "データベース接続エラー", 
@@ -58,7 +58,7 @@ namespace WaterUtilityCost
                 }
 
                 // Excelファイルの確認（一時的）
-                ExcelChecker.CheckInvoiceExcel();
+                // ExcelChecker.CheckInvoiceExcel();
 
                 // メニューフォームを起動
                 Application.Run(new MenuForm());

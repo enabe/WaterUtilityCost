@@ -58,7 +58,7 @@ namespace WaterUtilityCost.Tools
                 new { No = 8, Name = "電気料金管理", SheetName = "電気料金管理" },
                 new { No = 9, Name = "ガス料金管理", SheetName = "ガス料金管理" },
                 new { No = 10, Name = "水道光熱費請求明細一覧", SheetName = "水道光熱費請求明細一覧" },
-                new { No = 11, Name = "請求データ登録", SheetName = "請求データ登録" }
+                new { No = 11, Name = "請求明細データ作成", SheetName = "請求明細データ作成" }
             };
             
             int row = 4;
@@ -94,7 +94,7 @@ namespace WaterUtilityCost.Tools
                 new { Item = "レイアウト", Content = "タイトル: 「水道光熱費管理システム」（中央配置、フォントサイズ16）" },
                 new { Item = "ボタン配置", Content = "1列目（左）: ビル管理、部屋管理、取引先管理、契約管理、親メーター管理" },
                 new { Item = "", Content = "2列目（中央）: 電気料金管理、水道料金管理、ガス料金管理" },
-                new { Item = "", Content = "3列目（右）: 水道光熱費請求明細一覧、請求データ登録" },
+                new { Item = "", Content = "3列目（右）: 水道光熱費請求明細一覧、請求明細データ作成" },
                 new { Item = "", Content = "右下: 終了ボタン" },
                 new { Item = "機能", Content = "各ボタンをクリックすると、対応する管理フォームが開きます。" },
                 new { Item = "画像", Content = "※ここにスクリーンショット画像を貼り付けてください" }
@@ -476,8 +476,8 @@ namespace WaterUtilityCost.Tools
                 new { Item = "画面名", Content = "水道光熱費請求明細一覧" },
                 new { Item = "フォームクラス", Content = "InvoiceDetailForm, InvoiceDetailEditForm" },
                 new { Item = "説明", Content = "請求明細の一覧表示、新規登録、編集、削除、CSVエクスポートを行います。" },
-                new { Item = "一覧表示項目", Content = "ID（幅50px）、請求先、貸主、建物名称、借主、部屋番号、種別、内容、使用量、単位、税込金額、税率、子メータ使用開始日、子メータ使用終了日、親メータ使用開始日、親メータ使用終了日、決定請求日、登録日" },
-                new { Item = "管理項目", Content = "請求先、貸主、建物名称、借主、部屋番号、種別、内容、使用量、単位、税込金額、税率、子メータ使用開始日、子メータ使用終了日、親メータ使用開始日、親メータ使用終了日、決定請求日" },
+                new { Item = "一覧表示項目", Content = "ID（幅50px）、請求先、貸主、建物名称、借主、部屋番号、種別、内容、使用量、単位、税込金額、税率、子メータ使用開始日、子メータ使用終了日、親メータ使用開始日、親メータ使用終了日、請求予定日、登録日" },
+                new { Item = "管理項目", Content = "請求先、貸主、建物名称、借主、部屋番号、種別、内容、使用量、単位、税込金額、税率、子メータ使用開始日、子メータ使用終了日、親メータ使用開始日、親メータ使用終了日、請求予定日" },
                 new { Item = "ボタン", Content = "新規登録、編集、削除、更新（リフレッシュ）、CSVエクスポート" },
                 new { Item = "機能", Content = "・新規登録: InvoiceDetailEditFormを開いて新規請求明細を登録" },
                 new { Item = "", Content = "・編集: 選択した請求明細の情報を編集" },
@@ -504,9 +504,9 @@ namespace WaterUtilityCost.Tools
         
         private static void CreateBillingDataRegistrationSheet(XLWorkbook workbook)
         {
-            var sheet = workbook.Worksheets.Add("請求データ登録");
+            var sheet = workbook.Worksheets.Add("請求明細データ作成");
             
-            sheet.Cell(1, 1).Value = "請求データ登録";
+            sheet.Cell(1, 1).Value = "請求明細データ作成";
             sheet.Cell(1, 1).Style.Font.Bold = true;
             sheet.Cell(1, 1).Style.Font.FontSize = 16;
             
@@ -517,7 +517,7 @@ namespace WaterUtilityCost.Tools
             
             var items = new[]
             {
-                new { Item = "画面名", Content = "請求データ登録" },
+                new { Item = "画面名", Content = "請求明細データ作成" },
                 new { Item = "フォームクラス", Content = "BillingDataRegistrationForm" },
                 new { Item = "説明", Content = "請求書の印刷を行います。印刷前に請求書.xlsxのAN1セルに印刷日を挿入します。" },
                 new { Item = "機能", Content = "・請求書印刷: プリンタ選択ダイアログを表示し、選択したプリンタで請求書を印刷" },

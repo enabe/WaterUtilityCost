@@ -21,7 +21,7 @@ namespace WaterUtilityCost.Database
                 {
                     var configConnectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"];
                     _connectionString = configConnectionString != null ? configConnectionString.ConnectionString 
-                        : "Data Source=ROLAN-PC\\SQLEXPRESS;Initial Catalog=BuildingManagement;Integrated Security=True;";
+                        : "Data Source=.\\SQLEXPRESS01;Initial Catalog=BuildingManagement;Integrated Security=True;";
                 }
                 return _connectionString;
             }
@@ -114,10 +114,6 @@ namespace WaterUtilityCost.Database
                         [Name] NVARCHAR(100) NOT NULL,
                         [Address] NVARCHAR(200),
                         [Floors] INT NOT NULL DEFAULT 1,
-                        [BuiltDate] DATETIME,
-                        [Area] DECIMAL(18,2),
-                        [Owner] NVARCHAR(100),
-                        [Contact] NVARCHAR(50),
                         [CreatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
                         [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE()
                     )";
@@ -147,7 +143,11 @@ namespace WaterUtilityCost.Database
                         [IsLessee] BIT NOT NULL DEFAULT 0,
                         [IsBillingTo] BIT NOT NULL DEFAULT 0,
                         [IsContractor] BIT NOT NULL DEFAULT 0,
+                        [IsAutoTransfer] BIT NOT NULL DEFAULT 0,
+                        [IsBankTransfer] BIT NOT NULL DEFAULT 0,
                         [InvoiceNumber] NVARCHAR(50),
+                        [BuildingName] NVARCHAR(100),
+                        [RoomName] NVARCHAR(100),
                         [PostalCode] NVARCHAR(10),
                         [Address] NVARCHAR(200),
                         [Phone] NVARCHAR(20),
@@ -260,9 +260,25 @@ namespace WaterUtilityCost.Database
                         BEGIN
                             ALTER TABLE [dbo].[Clients] ADD [IsContractor] BIT NOT NULL DEFAULT 0;
                         END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'IsAutoTransfer')
+                        BEGIN
+                            ALTER TABLE [dbo].[Clients] ADD [IsAutoTransfer] BIT NOT NULL DEFAULT 0;
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'IsBankTransfer')
+                        BEGIN
+                            ALTER TABLE [dbo].[Clients] ADD [IsBankTransfer] BIT NOT NULL DEFAULT 0;
+                        END
                         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'InvoiceNumber')
                         BEGIN
                             ALTER TABLE [dbo].[Clients] ADD [InvoiceNumber] NVARCHAR(50);
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'BuildingName')
+                        BEGIN
+                            ALTER TABLE [dbo].[Clients] ADD [BuildingName] NVARCHAR(100);
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'RoomName')
+                        BEGIN
+                            ALTER TABLE [dbo].[Clients] ADD [RoomName] NVARCHAR(100);
                         END
                         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'PostalCode')
                         BEGIN
@@ -280,8 +296,10 @@ namespace WaterUtilityCost.Database
             [BuildingName] NVARCHAR(100),
             [Lessee] NVARCHAR(100),
             [RoomNumber] NVARCHAR(50),
+            [RoomArea] DECIMAL(18,2),
             [Category] NVARCHAR(50),
             [Content] NVARCHAR(200),
+            [ChildMeterUsage] DECIMAL(18,2),
             [UsageAmount] DECIMAL(18,2),
             [Unit] NVARCHAR(20),
             [TaxInclusiveAmount] DECIMAL(18,2),
@@ -291,6 +309,7 @@ namespace WaterUtilityCost.Database
             [ParentMeterStartDate] DATETIME,
             [ParentMeterEndDate] DATETIME,
             [ConfirmedBillingDate] DATETIME,
+            [BillingYearMonth] NVARCHAR(7),
             [CreatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
             [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE()
         )";
@@ -309,8 +328,11 @@ namespace WaterUtilityCost.Database
                 [UsageCharge] DECIMAL(18,2) NOT NULL,
                 [TaxRate] DECIMAL(18,2) NULL,
                 [CustomerNumber] NVARCHAR(50) NOT NULL,
+                [ParentMeterId] INT NULL,
+                [ContractorId] INT NULL,
                 [CreatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
-                [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE()
+                [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
+                FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id])
             )";
 
         // ElectricBillingsテーブルの作成
@@ -327,8 +349,10 @@ namespace WaterUtilityCost.Database
                 [PowerCharge] DECIMAL(18,2) NOT NULL,
                 [CustomerNumber] NVARCHAR(50) NOT NULL,
                 [TaxRate] DECIMAL(18,2) NULL,
+                [ContractorId] INT NULL,
                 [CreatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
-                [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE()
+                [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
+                FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id])
             )";
 
         // GasBillingsテーブルの作成
@@ -338,6 +362,8 @@ namespace WaterUtilityCost.Database
                 [Id] INT IDENTITY(1,1) PRIMARY KEY,
                 [BillingYearMonth] NVARCHAR(7) NOT NULL,
                 [BuildingName] NVARCHAR(100) NOT NULL,
+                [FloorName] NVARCHAR(100) NOT NULL,
+                [ParentMeterId] INT NULL,
                 [UsageAmount] DECIMAL(18,2) NOT NULL,
                 [StartDate] DATETIME NOT NULL,
                 [EndDate] DATETIME NOT NULL,
@@ -345,8 +371,10 @@ namespace WaterUtilityCost.Database
                 [UsageCharge] DECIMAL(18,2) NOT NULL,
                 [TaxRate] DECIMAL(18,2) NULL,
                 [CustomerNumber] NVARCHAR(50) NOT NULL,
+                [ContractorId] INT NULL,
                 [CreatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
-                [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE()
+                [UpdatedAt] DATETIME NOT NULL DEFAULT GETDATE(),
+                FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id])
             )";
 
         // Contractsテーブルの作成
@@ -443,6 +471,30 @@ namespace WaterUtilityCost.Database
                 using var cmd1migrate = new SqlCommand(addFloorsColumnQuery, connection);
                 await cmd1migrate.ExecuteNonQueryAsync();
 
+                // 既存のBuildingsテーブルからBuiltDate, Area, Owner, Contactカラムを削除（存在する場合）
+                var removeBuildingColumnsQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Buildings]') AND type in (N'U'))
+                    BEGIN
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Buildings]') AND name = 'BuiltDate')
+                        BEGIN
+                            ALTER TABLE [dbo].[Buildings] DROP COLUMN [BuiltDate];
+                        END
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Buildings]') AND name = 'Area')
+                        BEGIN
+                            ALTER TABLE [dbo].[Buildings] DROP COLUMN [Area];
+                        END
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Buildings]') AND name = 'Owner')
+                        BEGIN
+                            ALTER TABLE [dbo].[Buildings] DROP COLUMN [Owner];
+                        END
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Buildings]') AND name = 'Contact')
+                        BEGIN
+                            ALTER TABLE [dbo].[Buildings] DROP COLUMN [Contact];
+                        END
+                    END";
+                using var cmd1removeColumns = new SqlCommand(removeBuildingColumnsQuery, connection);
+                await cmd1removeColumns.ExecuteNonQueryAsync();
+
                 using var cmd2 = new SqlCommand(createUtilityCostsTable, connection);
                 await cmd2.ExecuteNonQueryAsync();
 
@@ -452,9 +504,28 @@ namespace WaterUtilityCost.Database
                 using var cmd3migrate = new SqlCommand(migrateClientsTable, connection);
                 await cmd3migrate.ExecuteNonQueryAsync();
 
-                // Clientsテーブルのカラム順序を変更するマイグレーション
-                var reorderClientsTableColumns = @"
+                // BuildingNameとRoomNameカラムが確実に存在することを保証
+                var ensureBuildingNameAndRoomNameColumns = @"
                     IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'BuildingName')
+                        BEGIN
+                            ALTER TABLE [dbo].[Clients] ADD [BuildingName] NVARCHAR(100);
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'RoomName')
+                        BEGIN
+                            ALTER TABLE [dbo].[Clients] ADD [RoomName] NVARCHAR(100);
+                        END
+                    END";
+                using var cmd3ensureColumns = new SqlCommand(ensureBuildingNameAndRoomNameColumns, connection);
+                await cmd3ensureColumns.ExecuteNonQueryAsync();
+
+                // 列順序の並べ替えは適用済みのため IF 1 = 0 で無効化している。
+                // この処理はClientsを一時テーブル経由で作り直すが、コピーが失敗してもCATCHが
+                // 握り潰して続行するため、中身が空のClientsだけが残りデータが全消失する。
+                // 参照元の外部キーも事前に削除されるため、後続のFK再作成がエラー547で失敗する。
+                var reorderClientsTableColumns = @"
+                    IF 1 = 0
                     BEGIN
                         BEGIN TRY
                             -- 一時テーブルが残っている場合は削除
@@ -471,7 +542,11 @@ namespace WaterUtilityCost.Database
                                 [IsLessee] BIT NOT NULL DEFAULT 0,
                                 [IsBillingTo] BIT NOT NULL DEFAULT 0,
                                 [IsContractor] BIT NOT NULL DEFAULT 0,
+                                [IsAutoTransfer] BIT NOT NULL DEFAULT 0,
+                                [IsBankTransfer] BIT NOT NULL DEFAULT 0,
                                 [InvoiceNumber] NVARCHAR(50),
+                                [BuildingName] NVARCHAR(100),
+                                [RoomName] NVARCHAR(100),
                                 [PostalCode] NVARCHAR(10),
                                 [Address] NVARCHAR(200),
                                 [Phone] NVARCHAR(20),
@@ -483,9 +558,50 @@ namespace WaterUtilityCost.Database
                             IF EXISTS (SELECT 1 FROM [dbo].[Clients])
                             BEGIN
                                 SET IDENTITY_INSERT [dbo].[Clients_Temp] ON;
-                                INSERT INTO [dbo].[Clients_Temp] ([Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], [InvoiceNumber], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt])
-                                SELECT [Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], [InvoiceNumber], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt]
-                                FROM [dbo].[Clients];
+                                
+                                -- BuildingNameとRoomNameカラムの存在を確認
+                                DECLARE @HasBuildingName BIT = 0;
+                                DECLARE @HasRoomName BIT = 0;
+                                
+                                IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'BuildingName')
+                                BEGIN
+                                    SET @HasBuildingName = 1;
+                                END
+                                
+                                IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Clients]') AND name = 'RoomName')
+                                BEGIN
+                                    SET @HasRoomName = 1;
+                                END
+                                
+                                -- カラムの存在に応じてSELECT文を動的に構築
+                                DECLARE @sqlCopy NVARCHAR(MAX);
+                                
+                                IF @HasBuildingName = 1 AND @HasRoomName = 1
+                                BEGIN
+                                    SET @sqlCopy = N'INSERT INTO [dbo].[Clients_Temp] ([Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], [IsAutoTransfer], [IsBankTransfer], [InvoiceNumber], [BuildingName], [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt])
+                                    SELECT [Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], ISNULL([IsAutoTransfer], 0), ISNULL([IsBankTransfer], 0), [InvoiceNumber], ISNULL([BuildingName], '''') AS [BuildingName], ISNULL([RoomName], '''') AS [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt]
+                                    FROM [dbo].[Clients]';
+                                END
+                                ELSE IF @HasBuildingName = 1
+                                BEGIN
+                                    SET @sqlCopy = N'INSERT INTO [dbo].[Clients_Temp] ([Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], [IsAutoTransfer], [IsBankTransfer], [InvoiceNumber], [BuildingName], [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt])
+                                    SELECT [Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], ISNULL([IsAutoTransfer], 0), ISNULL([IsBankTransfer], 0), [InvoiceNumber], ISNULL([BuildingName], '''') AS [BuildingName], '''' AS [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt]
+                                    FROM [dbo].[Clients]';
+                                END
+                                ELSE IF @HasRoomName = 1
+                                BEGIN
+                                    SET @sqlCopy = N'INSERT INTO [dbo].[Clients_Temp] ([Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], [IsAutoTransfer], [IsBankTransfer], [InvoiceNumber], [BuildingName], [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt])
+                                    SELECT [Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], ISNULL([IsAutoTransfer], 0), ISNULL([IsBankTransfer], 0), [InvoiceNumber], '''' AS [BuildingName], ISNULL([RoomName], '''') AS [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt]
+                                    FROM [dbo].[Clients]';
+                                END
+                                ELSE
+                                BEGIN
+                                    SET @sqlCopy = N'INSERT INTO [dbo].[Clients_Temp] ([Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], [IsAutoTransfer], [IsBankTransfer], [InvoiceNumber], [BuildingName], [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt])
+                                    SELECT [Id], [Name], [IsLessor], [IsLessee], [IsBillingTo], [IsContractor], ISNULL([IsAutoTransfer], 0), ISNULL([IsBankTransfer], 0), [InvoiceNumber], '''' AS [BuildingName], '''' AS [RoomName], [PostalCode], [Address], [Phone], [CreatedAt], [UpdatedAt]
+                                    FROM [dbo].[Clients]';
+                                END
+                                
+                                EXEC sp_executesql @sqlCopy;
                                 SET IDENTITY_INSERT [dbo].[Clients_Temp] OFF;
                             END
                             
@@ -573,6 +689,18 @@ namespace WaterUtilityCost.Database
                         BEGIN
                             ALTER TABLE [dbo].[InvoiceDetails] ADD [InvoiceNumber] NVARCHAR(50);
                         END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[InvoiceDetails]') AND name = 'RoomArea')
+                        BEGIN
+                            ALTER TABLE [dbo].[InvoiceDetails] ADD [RoomArea] DECIMAL(18,2);
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[InvoiceDetails]') AND name = 'ChildMeterUsage')
+                        BEGIN
+                            ALTER TABLE [dbo].[InvoiceDetails] ADD [ChildMeterUsage] DECIMAL(18,2);
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[InvoiceDetails]') AND name = 'BillingYearMonth')
+                        BEGIN
+                            ALTER TABLE [dbo].[InvoiceDetails] ADD [BillingYearMonth] NVARCHAR(7);
+                        END
                     END";
                 using var cmd4migrate = new SqlCommand(addInvoiceDetailContractorColumnsQuery, connection);
                 await cmd4migrate.ExecuteNonQueryAsync();
@@ -595,9 +723,10 @@ namespace WaterUtilityCost.Database
                 using var cmd6migrate = new SqlCommand(removeElectricBillingAmountColumnQuery, connection);
                 await cmd6migrate.ExecuteNonQueryAsync();
 
-                // ElectricBillingsテーブルの列順序を変更（TaxRateをCreatedAtの前に移動）
+                // 列順序の並べ替えは適用済みのため IF 1 = 0 で無効化している。
+                // 一時テーブルにContractorIdが無いため、実行するたびに契約者の紐付けが失われる。
                 var reorderElectricBillingsColumnsQuery = @"
-                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ElectricBillings]') AND type in (N'U'))
+                    IF 1 = 0
                     BEGIN
                         BEGIN TRY
                             -- 一時テーブルが残っている場合は削除
@@ -666,6 +795,37 @@ namespace WaterUtilityCost.Database
                 using var cmd6migrate2 = new SqlCommand(addElectricBillingTaxRateColumnQuery, connection);
                 await cmd6migrate2.ExecuteNonQueryAsync();
 
+                // ElectricBillingsテーブルにContractorIdカラムと外部キーを追加（存在しない場合）
+                var addElectricBillingContractorIdColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ElectricBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ElectricBillings]') AND name = 'ContractorId')
+                        BEGIN
+                            ALTER TABLE [dbo].[ElectricBillings] ADD [ContractorId] INT NULL;
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_ElectricBillings_Clients_ContractorId')
+                        BEGIN
+                            DECLARE @electricFkSql NVARCHAR(MAX) = N'
+                                IF EXISTS (SELECT 1 FROM [dbo].[ElectricBillings] e
+                                           WHERE e.[ContractorId] IS NOT NULL
+                                             AND NOT EXISTS (SELECT 1 FROM [dbo].[Clients] c WHERE c.[Id] = e.[ContractorId]))
+                                BEGIN
+                                    ALTER TABLE [dbo].[ElectricBillings] WITH NOCHECK
+                                    ADD CONSTRAINT FK_ElectricBillings_Clients_ContractorId
+                                    FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                                END
+                                ELSE
+                                BEGIN
+                                    ALTER TABLE [dbo].[ElectricBillings]
+                                    ADD CONSTRAINT FK_ElectricBillings_Clients_ContractorId
+                                    FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                                END';
+                            EXEC sp_executesql @electricFkSql;
+                        END
+                    END";
+                using var cmd6migrate3 = new SqlCommand(addElectricBillingContractorIdColumnQuery, connection);
+                await cmd6migrate3.ExecuteNonQueryAsync();
+
                 // WaterBillingsテーブルからBillingAmountカラムを削除（存在する場合）
                 var removeWaterBillingAmountColumnQuery = @"
                     IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND type in (N'U'))
@@ -706,6 +866,64 @@ namespace WaterUtilityCost.Database
                 using var cmd5migrate3 = new SqlCommand(addWaterBillingTaxRateColumnQuery, connection);
                 await cmd5migrate3.ExecuteNonQueryAsync();
 
+                // WaterBillingsテーブルに差額割当先部屋名カラムを追加（存在しない場合）
+                var addWaterBillingDifferenceAssignmentRoomQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND name = 'DifferenceAssignmentRoomName')
+                        BEGIN
+                            ALTER TABLE [dbo].[WaterBillings] ADD [DifferenceAssignmentRoomName] NVARCHAR(100) NULL;
+                        END
+                    END";
+                using var cmd5migrate4 = new SqlCommand(addWaterBillingDifferenceAssignmentRoomQuery, connection);
+                await cmd5migrate4.ExecuteNonQueryAsync();
+
+                // WaterBillingsテーブルにContractorIdカラムと外部キーを追加（存在しない場合）
+                var addWaterBillingContractorIdColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND name = 'ContractorId')
+                        BEGIN
+                            ALTER TABLE [dbo].[WaterBillings] ADD [ContractorId] INT NULL;
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_WaterBillings_Clients_ContractorId')
+                        BEGIN
+                            -- 参照先を失ったContractorIdが残っていても起動できるよう、
+                            -- 不整合がある場合は検証なしで作成して既存データを保持する。
+                            -- ContractorId列を直前に追加した場合に備え動的SQLで遅延コンパイルする。
+                            DECLARE @waterFkSql NVARCHAR(MAX) = N'
+                                IF EXISTS (SELECT 1 FROM [dbo].[WaterBillings] w
+                                           WHERE w.[ContractorId] IS NOT NULL
+                                             AND NOT EXISTS (SELECT 1 FROM [dbo].[Clients] c WHERE c.[Id] = w.[ContractorId]))
+                                BEGIN
+                                    ALTER TABLE [dbo].[WaterBillings] WITH NOCHECK
+                                    ADD CONSTRAINT FK_WaterBillings_Clients_ContractorId
+                                    FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                                END
+                                ELSE
+                                BEGIN
+                                    ALTER TABLE [dbo].[WaterBillings]
+                                    ADD CONSTRAINT FK_WaterBillings_Clients_ContractorId
+                                    FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                                END';
+                            EXEC sp_executesql @waterFkSql;
+                        END
+                    END";
+                using var cmd5migrate5 = new SqlCommand(addWaterBillingContractorIdColumnQuery, connection);
+                await cmd5migrate5.ExecuteNonQueryAsync();
+
+                // WaterBillingsテーブルにParentMeterIdカラムを追加（存在しない場合）
+                var addWaterBillingParentMeterIdColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[WaterBillings]') AND name = 'ParentMeterId')
+                        BEGIN
+                            ALTER TABLE [dbo].[WaterBillings] ADD [ParentMeterId] INT NULL;
+                        END
+                    END";
+                using var cmd5migrate6 = new SqlCommand(addWaterBillingParentMeterIdColumnQuery, connection);
+                await cmd5migrate6.ExecuteNonQueryAsync();
+
                 using var cmd7 = new SqlCommand(createGasBillingsTable, connection);
                 await cmd7.ExecuteNonQueryAsync();
 
@@ -745,6 +963,61 @@ namespace WaterUtilityCost.Database
                 using var cmd7migrate3 = new SqlCommand(addGasBillingTaxRateColumnQuery, connection);
                 await cmd7migrate3.ExecuteNonQueryAsync();
 
+                // GasBillingsテーブルにFloorNameカラムを追加（存在しない場合）
+                var addGasBillingFloorNameColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND name = 'FloorName')
+                        BEGIN
+                            ALTER TABLE [dbo].[GasBillings] ADD [FloorName] NVARCHAR(100) NOT NULL DEFAULT('');
+                        END
+                    END";
+                using var cmd7migrate4 = new SqlCommand(addGasBillingFloorNameColumnQuery, connection);
+                await cmd7migrate4.ExecuteNonQueryAsync();
+
+                // GasBillingsテーブルにParentMeterIdカラムを追加（存在しない場合）
+                var addGasBillingParentMeterIdColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND name = 'ParentMeterId')
+                        BEGIN
+                            ALTER TABLE [dbo].[GasBillings] ADD [ParentMeterId] INT NULL;
+                        END
+                    END";
+                using var cmd7migrate5 = new SqlCommand(addGasBillingParentMeterIdColumnQuery, connection);
+                await cmd7migrate5.ExecuteNonQueryAsync();
+
+                // GasBillingsテーブルにContractorIdカラムと外部キーを追加（存在しない場合）
+                var addGasBillingContractorIdColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND name = 'ContractorId')
+                        BEGIN
+                            ALTER TABLE [dbo].[GasBillings] ADD [ContractorId] INT NULL;
+                        END
+                        IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_GasBillings_Clients_ContractorId')
+                        BEGIN
+                            DECLARE @gasFkSql NVARCHAR(MAX) = N'
+                                IF EXISTS (SELECT 1 FROM [dbo].[GasBillings] g
+                                           WHERE g.[ContractorId] IS NOT NULL
+                                             AND NOT EXISTS (SELECT 1 FROM [dbo].[Clients] c WHERE c.[Id] = g.[ContractorId]))
+                                BEGIN
+                                    ALTER TABLE [dbo].[GasBillings] WITH NOCHECK
+                                    ADD CONSTRAINT FK_GasBillings_Clients_ContractorId
+                                    FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                                END
+                                ELSE
+                                BEGIN
+                                    ALTER TABLE [dbo].[GasBillings]
+                                    ADD CONSTRAINT FK_GasBillings_Clients_ContractorId
+                                    FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                                END';
+                            EXEC sp_executesql @gasFkSql;
+                        END
+                    END";
+                using var cmd7migrate6 = new SqlCommand(addGasBillingContractorIdColumnQuery, connection);
+                await cmd7migrate6.ExecuteNonQueryAsync();
+
                 using var cmd8 = new SqlCommand(createContractsTable, connection);
                 await cmd8.ExecuteNonQueryAsync();
 
@@ -772,6 +1045,70 @@ namespace WaterUtilityCost.Database
                     END";
                 using var cmd9migrate = new SqlCommand(addContractorIdColumnQuery, connection);
                 await cmd9migrate.ExecuteNonQueryAsync();
+
+                // MetersテーブルにMeterNameカラムを追加（存在しない場合）
+                var addMeterNameColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Meters]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Meters]') AND name = 'MeterName')
+                        BEGIN
+                            ALTER TABLE [dbo].[Meters] ADD [MeterName] NVARCHAR(100);
+                        END
+                    END";
+                using var cmd9migrate2 = new SqlCommand(addMeterNameColumnQuery, connection);
+                await cmd9migrate2.ExecuteNonQueryAsync();
+
+                // 過去の破壊的なマイグレーションで削除されたままになっている外部キーを復元する。
+                // CREATE TABLE時のFKは自動命名されるため、制約名ではなく参照列で存在を判定する。
+                // 既存データに不整合があっても起動できるよう WITH NOCHECK で作成する。
+                var restoreClientForeignKeysQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Contracts]') AND type in (N'U'))
+                    BEGIN
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Contracts]') AND name = 'LessorClientId')
+                           AND NOT EXISTS (SELECT 1 FROM sys.foreign_key_columns fkc
+                                           WHERE fkc.parent_object_id = OBJECT_ID(N'[dbo].[Contracts]')
+                                             AND fkc.referenced_object_id = OBJECT_ID(N'[dbo].[Clients]')
+                                             AND COL_NAME(fkc.parent_object_id, fkc.parent_column_id) = 'LessorClientId')
+                        BEGIN
+                            ALTER TABLE [dbo].[Contracts] WITH NOCHECK
+                            ADD CONSTRAINT FK_Contracts_LessorClient FOREIGN KEY ([LessorClientId]) REFERENCES [dbo].[Clients]([Id]);
+                        END
+
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Contracts]') AND name = 'LesseeClientId')
+                           AND NOT EXISTS (SELECT 1 FROM sys.foreign_key_columns fkc
+                                           WHERE fkc.parent_object_id = OBJECT_ID(N'[dbo].[Contracts]')
+                                             AND fkc.referenced_object_id = OBJECT_ID(N'[dbo].[Clients]')
+                                             AND COL_NAME(fkc.parent_object_id, fkc.parent_column_id) = 'LesseeClientId')
+                        BEGIN
+                            ALTER TABLE [dbo].[Contracts] WITH NOCHECK
+                            ADD CONSTRAINT FK_Contracts_LesseeClient FOREIGN KEY ([LesseeClientId]) REFERENCES [dbo].[Clients]([Id]);
+                        END
+
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Contracts]') AND name = 'BillingClientId')
+                           AND NOT EXISTS (SELECT 1 FROM sys.foreign_key_columns fkc
+                                           WHERE fkc.parent_object_id = OBJECT_ID(N'[dbo].[Contracts]')
+                                             AND fkc.referenced_object_id = OBJECT_ID(N'[dbo].[Clients]')
+                                             AND COL_NAME(fkc.parent_object_id, fkc.parent_column_id) = 'BillingClientId')
+                        BEGIN
+                            ALTER TABLE [dbo].[Contracts] WITH NOCHECK
+                            ADD CONSTRAINT FK_Contracts_BillingClient FOREIGN KEY ([BillingClientId]) REFERENCES [dbo].[Clients]([Id]);
+                        END
+                    END
+
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Meters]') AND type in (N'U'))
+                    BEGIN
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Meters]') AND name = 'ContractorId')
+                           AND NOT EXISTS (SELECT 1 FROM sys.foreign_key_columns fkc
+                                           WHERE fkc.parent_object_id = OBJECT_ID(N'[dbo].[Meters]')
+                                             AND fkc.referenced_object_id = OBJECT_ID(N'[dbo].[Clients]')
+                                             AND COL_NAME(fkc.parent_object_id, fkc.parent_column_id) = 'ContractorId')
+                        BEGIN
+                            ALTER TABLE [dbo].[Meters] WITH NOCHECK
+                            ADD CONSTRAINT FK_Meters_Clients FOREIGN KEY ([ContractorId]) REFERENCES [dbo].[Clients]([Id]);
+                        END
+                    END";
+                using var cmd9restoreFks = new SqlCommand(restoreClientForeignKeysQuery, connection);
+                await cmd9restoreFks.ExecuteNonQueryAsync();
 
                 using var cmd10 = new SqlCommand(createFloorsTable, connection);
                 await cmd10.ExecuteNonQueryAsync();
@@ -893,6 +1230,36 @@ namespace WaterUtilityCost.Database
                 using var cmd11migrate4 = new SqlCommand(addChildMeterColumnsQuery, connection);
                 await cmd11migrate4.ExecuteNonQueryAsync();
 
+                // ChildMetersテーブルにMeterNameカラムを追加（存在しない場合）
+                var addChildMeterNameColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND type in (N'U'))
+                    BEGIN
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND name = 'MeterName')
+                        BEGIN
+                            ALTER TABLE [dbo].[ChildMeters] ADD [MeterName] NVARCHAR(100);
+                        END
+                    END";
+                using var cmd11migrate6 = new SqlCommand(addChildMeterNameColumnQuery, connection);
+                await cmd11migrate6.ExecuteNonQueryAsync();
+
+                // ChildMetersテーブルからRoomIdカラムと外部キー制約を削除（存在する場合）
+                var dropRoomIdColumnQuery = @"
+                    IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND type in (N'U'))
+                    BEGIN
+                        -- 外部キー制約を削除
+                        IF EXISTS (SELECT * FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND name = 'FK_ChildMeters_Floors')
+                        BEGIN
+                            ALTER TABLE [dbo].[ChildMeters] DROP CONSTRAINT FK_ChildMeters_Floors;
+                        END
+                        -- RoomIdカラムを削除
+                        IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND name = 'RoomId')
+                        BEGIN
+                            ALTER TABLE [dbo].[ChildMeters] DROP COLUMN [RoomId];
+                        END
+                    END";
+                using var cmd11migrate5 = new SqlCommand(dropRoomIdColumnQuery, connection);
+                await cmd11migrate5.ExecuteNonQueryAsync();
+
                 using var cmd12 = new SqlCommand(createChildMeterReadingsTable, connection);
                 await cmd12.ExecuteNonQueryAsync();
 
@@ -966,6 +1333,15 @@ namespace WaterUtilityCost.Database
                 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Meters]') AND type in (N'U'))
                     DELETE FROM [dbo].[Meters];
                 
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeterReadings]') AND type in (N'U'))
+                    DELETE FROM [dbo].[ChildMeterReadings];
+
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[RoomChildMeters]') AND type in (N'U'))
+                    DELETE FROM [dbo].[RoomChildMeters];
+
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND type in (N'U'))
+                    DELETE FROM [dbo].[ChildMeters];
+                
                 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Floors]') AND type in (N'U'))
                     DELETE FROM [dbo].[Floors];
                 
@@ -1002,11 +1378,20 @@ namespace WaterUtilityCost.Database
                 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GasBillings]') AND type in (N'U'))
                     DBCC CHECKIDENT ('[dbo].[GasBillings]', RESEED, 0);
                 
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeterReadings]') AND type in (N'U'))
+                    DBCC CHECKIDENT ('[dbo].[ChildMeterReadings]', RESEED, 0);
+                
                 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Contracts]') AND type in (N'U'))
                     DBCC CHECKIDENT ('[dbo].[Contracts]', RESEED, 0);
                 
                 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Meters]') AND type in (N'U'))
                     DBCC CHECKIDENT ('[dbo].[Meters]', RESEED, 0);
+
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ChildMeters]') AND type in (N'U'))
+                    DBCC CHECKIDENT ('[dbo].[ChildMeters]', RESEED, 0);
+
+                IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[RoomChildMeters]') AND type in (N'U'))
+                    DBCC CHECKIDENT ('[dbo].[RoomChildMeters]', RESEED, 0);
                 
                 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Floors]') AND type in (N'U'))
                     DBCC CHECKIDENT ('[dbo].[Floors]', RESEED, 0);";

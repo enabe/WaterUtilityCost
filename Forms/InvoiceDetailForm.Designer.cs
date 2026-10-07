@@ -19,6 +19,9 @@ namespace WaterUtilityCost.Forms
         private System.Windows.Forms.Label _lblBillingYearMonth;
         private System.Windows.Forms.DateTimePicker _dtpBillingYearMonth;
         private System.Windows.Forms.Label _lblTotalAmount;
+        private System.Windows.Forms.Label _lblTotalUsage;
+        private System.Windows.Forms.Label _lblTotalChildUsage;
+        private System.Windows.Forms.Label _lblTotalArea;
         private System.Windows.Forms.Label _lblSearchBillingTo;
         private System.Windows.Forms.TextBox _txtSearchBillingTo;
         private System.Windows.Forms.Label _lblSearchBuildingName;
@@ -63,6 +66,9 @@ namespace WaterUtilityCost.Forms
             this._lblBillingYearMonth = new System.Windows.Forms.Label();
             this._dtpBillingYearMonth = new System.Windows.Forms.DateTimePicker();
             this._lblTotalAmount = new System.Windows.Forms.Label();
+            this._lblTotalUsage = new System.Windows.Forms.Label();
+            this._lblTotalChildUsage = new System.Windows.Forms.Label();
+            this._lblTotalArea = new System.Windows.Forms.Label();
             this._lblSearchBillingTo = new System.Windows.Forms.Label();
             this._txtSearchBillingTo = new System.Windows.Forms.TextBox();
             this._lblSearchBuildingName = new System.Windows.Forms.Label();
@@ -80,9 +86,11 @@ namespace WaterUtilityCost.Forms
             // _dgvInvoiceDetails
             // 
             this._dgvInvoiceDetails.AllowUserToAddRows = false;
-            this._dgvInvoiceDetails.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this._dgvInvoiceDetails.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this._dgvInvoiceDetails.ColumnHeadersHeight = 29;
-            this._dgvInvoiceDetails.Location = new System.Drawing.Point(20, 131);
+            this._dgvInvoiceDetails.Location = new System.Drawing.Point(20, 141);
             this._dgvInvoiceDetails.MultiSelect = false;
             this._dgvInvoiceDetails.Name = "_dgvInvoiceDetails";
             this._dgvInvoiceDetails.ReadOnly = true;
@@ -145,6 +153,7 @@ namespace WaterUtilityCost.Forms
             this._btnExportCsv.TabIndex = 5;
             this._btnExportCsv.Text = "CSV出力";
             this._btnExportCsv.UseVisualStyleBackColor = true;
+            this._btnExportCsv.Visible = false;
             // 
             // _btnExportComparisonCsv
             // 
@@ -190,12 +199,45 @@ namespace WaterUtilityCost.Forms
             // 
             this._lblTotalAmount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this._lblTotalAmount.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this._lblTotalAmount.Location = new System.Drawing.Point(1180, 98);
+            this._lblTotalAmount.Location = new System.Drawing.Point(1140, 108);
             this._lblTotalAmount.Name = "_lblTotalAmount";
-            this._lblTotalAmount.Size = new System.Drawing.Size(180, 30);
+            this._lblTotalAmount.Size = new System.Drawing.Size(220, 30);
             this._lblTotalAmount.TabIndex = 10;
             this._lblTotalAmount.Text = "税込金額合計: ¥0";
             this._lblTotalAmount.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // _lblTotalUsage
+            // 
+            this._lblTotalUsage.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this._lblTotalUsage.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this._lblTotalUsage.Location = new System.Drawing.Point(900, 108);
+            this._lblTotalUsage.Name = "_lblTotalUsage";
+            this._lblTotalUsage.Size = new System.Drawing.Size(230, 30);
+            this._lblTotalUsage.TabIndex = 20;
+            this._lblTotalUsage.Text = "使用量合計: 0";
+            this._lblTotalUsage.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // _lblTotalChildUsage
+            // 
+            this._lblTotalChildUsage.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this._lblTotalChildUsage.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this._lblTotalChildUsage.Location = new System.Drawing.Point(670, 108);
+            this._lblTotalChildUsage.Name = "_lblTotalChildUsage";
+            this._lblTotalChildUsage.Size = new System.Drawing.Size(230, 30);
+            this._lblTotalChildUsage.TabIndex = 21;
+            this._lblTotalChildUsage.Text = "子使用量合計: 0";
+            this._lblTotalChildUsage.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // _lblTotalArea
+            // 
+            this._lblTotalArea.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this._lblTotalArea.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this._lblTotalArea.Location = new System.Drawing.Point(440, 108);
+            this._lblTotalArea.Name = "_lblTotalArea";
+            this._lblTotalArea.Size = new System.Drawing.Size(230, 30);
+            this._lblTotalArea.TabIndex = 22;
+            this._lblTotalArea.Text = "面積合計: 0";
+            this._lblTotalArea.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // _lblSearchBillingTo
             // 
@@ -278,7 +320,7 @@ namespace WaterUtilityCost.Forms
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusLabel});
-            this.statusStrip.Location = new System.Drawing.Point(0, 580);
+            this.statusStrip.Location = new System.Drawing.Point(0, 620);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Size = new System.Drawing.Size(1400, 26);
             this.statusStrip.TabIndex = 6;
@@ -294,7 +336,7 @@ namespace WaterUtilityCost.Forms
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1400, 606);
+            this.ClientSize = new System.Drawing.Size(1400, 646);
             this.Controls.Add(this._btnClearSearch);
             this.Controls.Add(this._btnSearch);
             this.Controls.Add(this._cmbSearchCategory);
@@ -303,6 +345,9 @@ namespace WaterUtilityCost.Forms
             this.Controls.Add(this._lblSearchBuildingName);
             this.Controls.Add(this._txtSearchBillingTo);
             this.Controls.Add(this._lblSearchBillingTo);
+            this.Controls.Add(this._lblTotalArea);
+            this.Controls.Add(this._lblTotalChildUsage);
+            this.Controls.Add(this._lblTotalUsage);
             this.Controls.Add(this._lblTotalAmount);
             this.Controls.Add(this._dtpBillingYearMonth);
             this.Controls.Add(this._lblBillingYearMonth);

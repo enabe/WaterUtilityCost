@@ -13,7 +13,6 @@ namespace WaterUtilityCost.Forms
     /// </summary>
     public partial class GasChildMeterReadingForm : Form
     {
-        private int? _selectedBuildingId = null;
         private ChildMeterReading? _currentReading;
         private bool _isEditMode;
         private const string METER_TYPE = "ガス";
@@ -34,6 +33,21 @@ namespace WaterUtilityCost.Forms
             this.Text = "ガス子メータ検針データ編集";
         }
 
+        /// <summary>
+        /// 既存の検針データをコピーして新規登録画面を開くコンストラクタ
+        /// </summary>
+        /// <param name="reading">コピー元の検針データ</param>
+        /// <param name="isCopyMode">コピーモード（trueの場合、検針日を現在の日付に、メーター値を空にする）</param>
+        public GasChildMeterReadingForm(ChildMeterReading reading, bool isCopyMode) : this()
+        {
+            if (isCopyMode)
+            {
+                _currentReading = reading; // ビル名と部屋名をコピーするために保持
+                _isEditMode = false; // 新規登録モード
+                this.Text = "ガス子メータ検針データ登録";
+            }
+        }
+
         private async void GasChildMeterReadingForm_Load(object? sender, EventArgs e)
         {
             await LoadBuildingsAsync();
@@ -45,6 +59,11 @@ namespace WaterUtilityCost.Forms
             if (_isEditMode && _currentReading != null)
             {
                 await LoadReadingData();
+            }
+            else if (_currentReading != null)
+            {
+                // コピーモード：ビル名と部屋名をコピーし、検針日は現在の日付、メーター値は空にする
+                await LoadReadingDataForCopy();
             }
             else
             {
@@ -58,21 +77,62 @@ namespace WaterUtilityCost.Forms
 
             try
             {
-                // フロア情報を取得してビルIDを取得
-                var floor = await FloorDataAccess.GetFloorByIdAsync(_currentReading.FloorId);
-                if (floor != null)
+                if (_currentReading.ChildMeterId == null)
                 {
-                    // ビル名を設定
-                    cmbBuildingName.SelectedValue = floor.BuildingId;
-                    await LoadFloorsByBuildingIdAsync(floor.BuildingId);
-                    
-                    // フロア名を設定
-                    cmbFloorName.SelectedValue = _currentReading.FloorId;
+                    MessageBox.Show("子メーター情報が見つかりませんでした。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
                 }
+
+                var childMeter = await ChildMeterDataAccess.GetChildMeterByIdAsync(_currentReading.ChildMeterId.Value);
+                if (childMeter == null || childMeter.BuildingId == null)
+                {
+                    MessageBox.Show("子メーター情報の取得に失敗しました。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                    // ビル名を設定
+                cmbBuildingName.SelectedValue = childMeter.BuildingId.Value;
+                await LoadChildMetersByBuildingIdAsync(childMeter.BuildingId.Value);
+                    
+                // 子メーターを設定
+                cmbChildMeterName.SelectedValue = childMeter.Id;
 
                 // その他のデータを設定
                 dtpReadingDate.Value = _currentReading.ReadingDate;
                 txtMeterValue.Text = _currentReading.MeterValue.ToString();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"データの読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// コピーモード用のデータ読み込み（ビル名・子メーターをコピーし、検針日はコピー元を引き継ぎ、メーター値は空にする）
+        /// </summary>
+        private async Task LoadReadingDataForCopy()
+        {
+            if (_currentReading == null) return;
+
+            try
+            {
+                if (_currentReading.ChildMeterId != null)
+                {
+                    var childMeter = await ChildMeterDataAccess.GetChildMeterByIdAsync(_currentReading.ChildMeterId.Value);
+                    if (childMeter != null && childMeter.BuildingId != null)
+                {
+                    // ビル名を設定
+                        cmbBuildingName.SelectedValue = childMeter.BuildingId.Value;
+                        await LoadChildMetersByBuildingIdAsync(childMeter.BuildingId.Value);
+                        // 子メーターを設定
+                        cmbChildMeterName.SelectedValue = childMeter.Id;
+                    }
+                }
+
+                // 検針日はコピー元を引き継ぐ
+                dtpReadingDate.Value = _currentReading.ReadingDate;
+                // メーター値は空にする
+                txtMeterValue.Text = "";
             }
             catch (Exception ex)
             {
@@ -107,37 +167,37 @@ namespace WaterUtilityCost.Forms
             }
         }
 
-        private async Task LoadFloorsByBuildingIdAsync(int buildingId)
+        private async Task LoadChildMetersByBuildingIdAsync(int buildingId)
         {
             try
             {
-                var floors = await FloorDataAccess.GetFloorsByBuildingIdAsync(buildingId);
+                var childMeters = await ChildMeterDataAccess.GetChildMetersByBuildingAndTypeAsync(buildingId, METER_TYPE);
                 
-                var floorList = floors.Select(f => new
+                var childMeterList = childMeters.Select(m => new
                 {
-                    Id = f.Id,
-                    DisplayText = f.FloorName
+                    Id = m.Id,
+                    DisplayText = string.IsNullOrWhiteSpace(m.MeterName) ? $"ID:{m.Id}" : m.MeterName
                 }).ToList();
                 
                 // DataSourceを設定する前にクリア
-                cmbFloorName.DataSource = null;
-                cmbFloorName.Items.Clear();
+                cmbChildMeterName.DataSource = null;
+                cmbChildMeterName.Items.Clear();
                 
-                if (floorList.Count > 0)
+                if (childMeterList.Count > 0)
                 {
-                    cmbFloorName.DataSource = floorList;
-                    cmbFloorName.DisplayMember = "DisplayText";
-                    cmbFloorName.ValueMember = "Id";
-                    cmbFloorName.Enabled = true;
+                    cmbChildMeterName.DataSource = childMeterList;
+                    cmbChildMeterName.DisplayMember = "DisplayText";
+                    cmbChildMeterName.ValueMember = "Id";
+                    cmbChildMeterName.Enabled = true;
                 }
                 else
                 {
-                    cmbFloorName.Enabled = false;
+                    cmbChildMeterName.Enabled = false;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"フロア情報の読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"子メーター情報の読み込みに失敗しました: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -156,8 +216,8 @@ namespace WaterUtilityCost.Forms
         {
             if (cmbBuildingName.SelectedValue == null)
             {
-                cmbFloorName.DataSource = null;
-                cmbFloorName.Enabled = false;
+                cmbChildMeterName.DataSource = null;
+                cmbChildMeterName.Enabled = false;
                 return;
             }
 
@@ -176,8 +236,7 @@ namespace WaterUtilityCost.Forms
                 return; // 変換できない場合は処理を中断
             }
 
-            _selectedBuildingId = buildingId;
-            await LoadFloorsByBuildingIdAsync(buildingId);
+            await LoadChildMetersByBuildingIdAsync(buildingId);
         }
 
         private async void BtnSave_Click(object? sender, EventArgs e)
@@ -191,9 +250,9 @@ namespace WaterUtilityCost.Forms
                     return;
                 }
 
-                if (cmbFloorName.SelectedValue == null)
+                if (cmbChildMeterName.SelectedValue == null)
                 {
-                    MessageBox.Show("フロア名を選択してください。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("子メーターを選択してください。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
@@ -215,30 +274,29 @@ namespace WaterUtilityCost.Forms
                     return;
                 }
 
-                int floorId;
-                if (cmbFloorName.SelectedValue is int)
+                int childMeterId;
+                if (cmbChildMeterName.SelectedValue is int)
                 {
-                    floorId = (int)cmbFloorName.SelectedValue;
+                    childMeterId = (int)cmbChildMeterName.SelectedValue;
                 }
-                else if (!int.TryParse(cmbFloorName.SelectedValue?.ToString(), out floorId))
+                else if (!int.TryParse(cmbChildMeterName.SelectedValue?.ToString(), out childMeterId))
                 {
-                    MessageBox.Show("フロアIDの取得に失敗しました。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("子メーターIDの取得に失敗しました。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                // ChildMeterテーブルから該当するIDを取得
-                var childMeter = await ChildMeterDataAccess.GetChildMeterByBuildingRoomAndTypeAsync(buildingId, floorId, METER_TYPE);
-                if (childMeter == null)
+                var roomChildMeter = await RoomChildMeterDataAccess.GetRoomChildMeterByChildMeterIdAsync(childMeterId);
+                if (roomChildMeter == null)
                 {
-                    MessageBox.Show($"指定されたビル名、部屋名、メーター種別（{METER_TYPE}）に一致する子メーターが見つかりませんでした。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("選択された子メーターに紐づく部屋が見つかりませんでした。", "入力エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (_isEditMode && _currentReading != null)
                 {
                     // 更新処理
-                    _currentReading.FloorId = floorId;
-                    _currentReading.ChildMeterId = childMeter.Id;
+                    _currentReading.FloorId = roomChildMeter.FloorId;
+                    _currentReading.ChildMeterId = childMeterId;
                     _currentReading.ReadingDate = dtpReadingDate.Value;
                     _currentReading.Type = METER_TYPE;
                     _currentReading.MeterValue = meterValue;
@@ -260,8 +318,8 @@ namespace WaterUtilityCost.Forms
                     // 新規登録処理
                     var reading = new ChildMeterReading
                     {
-                        FloorId = floorId,
-                        ChildMeterId = childMeter.Id,
+                        FloorId = roomChildMeter.FloorId,
+                        ChildMeterId = childMeterId,
                         ReadingDate = dtpReadingDate.Value,
                         Type = METER_TYPE,
                         MeterValue = meterValue

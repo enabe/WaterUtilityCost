@@ -9,7 +9,9 @@ namespace WaterUtilityCost.Forms
 
         private System.Windows.Forms.Label lblBillingYearMonth;
         private System.Windows.Forms.DateTimePicker dtpBillingYearMonth;
-        private System.Windows.Forms.Button btnRegister;
+        private System.Windows.Forms.Button btnCreateElectric;
+        private System.Windows.Forms.Button btnCreateGas;
+        private System.Windows.Forms.Button btnCreateWater;
         private System.Windows.Forms.Button btnCancel;
 
         /// <summary>
@@ -35,7 +37,9 @@ namespace WaterUtilityCost.Forms
         {
             this.lblBillingYearMonth = new System.Windows.Forms.Label();
             this.dtpBillingYearMonth = new System.Windows.Forms.DateTimePicker();
-            this.btnRegister = new System.Windows.Forms.Button();
+            this.btnCreateElectric = new System.Windows.Forms.Button();
+            this.btnCreateGas = new System.Windows.Forms.Button();
+            this.btnCreateWater = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -46,7 +50,7 @@ namespace WaterUtilityCost.Forms
             this.lblBillingYearMonth.Name = "lblBillingYearMonth";
             this.lblBillingYearMonth.Size = new System.Drawing.Size(65, 12);
             this.lblBillingYearMonth.TabIndex = 0;
-            this.lblBillingYearMonth.Text = "請求年月:";
+            this.lblBillingYearMonth.Text = "受領請求年月:";
             // 
             // dtpBillingYearMonth
             // 
@@ -59,35 +63,55 @@ namespace WaterUtilityCost.Forms
             this.dtpBillingYearMonth.TabIndex = 1;
             this.dtpBillingYearMonth.Value = new System.DateTime(System.DateTime.Now.Year, System.DateTime.Now.Month, 1);
             // 
-            // btnRegister
+            // btnCreateElectric
             // 
-            this.btnRegister.Location = new System.Drawing.Point(220, 200);
-            this.btnRegister.Name = "btnRegister";
-            this.btnRegister.Size = new System.Drawing.Size(100, 30);
-            this.btnRegister.TabIndex = 4;
-            this.btnRegister.Text = "登録";
-            this.btnRegister.UseVisualStyleBackColor = true;
+            this.btnCreateElectric.Location = new System.Drawing.Point(55, 120);
+            this.btnCreateElectric.Name = "btnCreateElectric";
+            this.btnCreateElectric.Size = new System.Drawing.Size(150, 40);
+            this.btnCreateElectric.TabIndex = 2;
+            this.btnCreateElectric.Text = "電気明細作成";
+            this.btnCreateElectric.UseVisualStyleBackColor = true;
+            // 
+            // btnCreateGas
+            // 
+            this.btnCreateGas.Location = new System.Drawing.Point(210, 120);
+            this.btnCreateGas.Name = "btnCreateGas";
+            this.btnCreateGas.Size = new System.Drawing.Size(150, 40);
+            this.btnCreateGas.TabIndex = 3;
+            this.btnCreateGas.Text = "ガス明細作成";
+            this.btnCreateGas.UseVisualStyleBackColor = true;
+            // 
+            // btnCreateWater
+            // 
+            this.btnCreateWater.Location = new System.Drawing.Point(365, 120);
+            this.btnCreateWater.Name = "btnCreateWater";
+            this.btnCreateWater.Size = new System.Drawing.Size(150, 40);
+            this.btnCreateWater.TabIndex = 4;
+            this.btnCreateWater.Text = "水道明細作成";
+            this.btnCreateWater.UseVisualStyleBackColor = true;
             // 
             // btnCancel
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(330, 200);
+            this.btnCancel.Location = new System.Drawing.Point(365, 220);
             this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(100, 30);
-            this.btnCancel.TabIndex = 3;
-            this.btnCancel.Text = "キャンセル";
+            this.btnCancel.Size = new System.Drawing.Size(150, 40);
+            this.btnCancel.TabIndex = 5;
+            this.btnCancel.Text = "閉じる";
             this.btnCancel.UseVisualStyleBackColor = true;
             // 
             // BillingDataRegistrationForm
             // 
-            this.AcceptButton = this.btnRegister;
+            this.AcceptButton = this.btnCreateElectric;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(500, 300);
+            this.ClientSize = new System.Drawing.Size(560, 320);
             this.Controls.Add(this.btnCancel);
-            this.Controls.Add(this.btnRegister);
+            this.Controls.Add(this.btnCreateWater);
+            this.Controls.Add(this.btnCreateGas);
+            this.Controls.Add(this.btnCreateElectric);
             this.Controls.Add(this.dtpBillingYearMonth);
             this.Controls.Add(this.lblBillingYearMonth);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -95,7 +119,7 @@ namespace WaterUtilityCost.Forms
             this.MinimizeBox = false;
             this.Name = "BillingDataRegistrationForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "請求データ登録";
+            this.Text = "請求明細データ作成";
             this.ResumeLayout(false);
             this.PerformLayout();
         }

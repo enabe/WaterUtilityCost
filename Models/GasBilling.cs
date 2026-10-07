@@ -10,6 +10,8 @@ namespace WaterUtilityCost.Models
         public int Id { get; set; }
         public string BillingYearMonth { get; set; } = string.Empty; // 受領請求年月 (YYYY-MM)
         public string BuildingName { get; set; } = string.Empty; // ビル名
+        public string FloorName { get; set; } = string.Empty; // 階名
+        public int? ParentMeterId { get; set; } // 親メーターID (MetersテーブルへのFK)
         public decimal UsageAmount { get; set; } // 使用量
         public DateTime StartDate { get; set; } // 開始日
         public DateTime EndDate { get; set; } // 終了日
@@ -17,6 +19,7 @@ namespace WaterUtilityCost.Models
         public decimal UsageCharge { get; set; } // 使用料金
         public decimal TaxRate { get; set; } // 税率
         public string CustomerNumber { get; set; } = string.Empty; // お客様番号
+        public int? ContractorId { get; set; } // 業者（Clients.Id）
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

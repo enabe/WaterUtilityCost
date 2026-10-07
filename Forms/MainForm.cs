@@ -94,11 +94,7 @@ namespace WaterUtilityCost.Forms
                 {
                     Id = b.Id,
                     ビル名 = b.Name,
-                    住所 = b.Address,
-                    建設日 = b.BuiltDate != DateTime.MinValue ? b.BuiltDate.ToString("yyyy-MM-dd") : "",
-                    面積 = b.Area,
-                    所有者 = b.Owner,
-                    連絡先 = b.Contact
+                    住所 = b.Address
                 }).OrderByDescending(x => x.Id).ToList();
             }
             catch (Exception ex)

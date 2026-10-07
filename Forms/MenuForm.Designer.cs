@@ -27,6 +27,7 @@ namespace WaterUtilityCost.Forms
         private System.Windows.Forms.Button _btnInvoicePrint;
         private System.Windows.Forms.Button _btnCreateScreenSpecification;
         private System.Windows.Forms.Button _btnDeleteAllData;
+        private System.Windows.Forms.Button _btnInitialDataRegistration;
         private System.Windows.Forms.Button _btnExit;
 
         /// <summary>
@@ -70,6 +71,7 @@ namespace WaterUtilityCost.Forms
             this._btnInvoicePrint = new System.Windows.Forms.Button();
             this._btnCreateScreenSpecification = new System.Windows.Forms.Button();
             this._btnDeleteAllData = new System.Windows.Forms.Button();
+            this._btnInitialDataRegistration = new System.Windows.Forms.Button();
             this._btnExit = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -142,11 +144,11 @@ namespace WaterUtilityCost.Forms
             // _btnWaterBillingManagement
             // 
             this._btnWaterBillingManagement.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this._btnWaterBillingManagement.Location = new System.Drawing.Point(582, 207);
+            this._btnWaterBillingManagement.Location = new System.Drawing.Point(582, 289);
             this._btnWaterBillingManagement.Margin = new System.Windows.Forms.Padding(4);
             this._btnWaterBillingManagement.Name = "_btnWaterBillingManagement";
             this._btnWaterBillingManagement.Size = new System.Drawing.Size(245, 62);
-            this._btnWaterBillingManagement.TabIndex = 5;
+            this._btnWaterBillingManagement.TabIndex = 7;
             this._btnWaterBillingManagement.Text = "水道料金管理";
             this._btnWaterBillingManagement.UseVisualStyleBackColor = true;
             // 
@@ -164,11 +166,11 @@ namespace WaterUtilityCost.Forms
             // _btnGasBillingManagement
             // 
             this._btnGasBillingManagement.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this._btnGasBillingManagement.Location = new System.Drawing.Point(582, 289);
+            this._btnGasBillingManagement.Location = new System.Drawing.Point(582, 207);
             this._btnGasBillingManagement.Margin = new System.Windows.Forms.Padding(4);
             this._btnGasBillingManagement.Name = "_btnGasBillingManagement";
             this._btnGasBillingManagement.Size = new System.Drawing.Size(245, 62);
-            this._btnGasBillingManagement.TabIndex = 7;
+            this._btnGasBillingManagement.TabIndex = 5;
             this._btnGasBillingManagement.Text = "ガス料金管理";
             this._btnGasBillingManagement.UseVisualStyleBackColor = true;
             // 
@@ -180,7 +182,7 @@ namespace WaterUtilityCost.Forms
             this._btnElectricChildMeterReadingManagement.Name = "_btnElectricChildMeterReadingManagement";
             this._btnElectricChildMeterReadingManagement.Size = new System.Drawing.Size(245, 62);
             this._btnElectricChildMeterReadingManagement.TabIndex = 17;
-            this._btnElectricChildMeterReadingManagement.Text = "電気子メータ検針データ管理";
+            this._btnElectricChildMeterReadingManagement.Text = "電気子メーター検針データ管理";
             this._btnElectricChildMeterReadingManagement.UseVisualStyleBackColor = true;
             // 
             // _btnGasChildMeterReadingManagement
@@ -191,7 +193,7 @@ namespace WaterUtilityCost.Forms
             this._btnGasChildMeterReadingManagement.Name = "_btnGasChildMeterReadingManagement";
             this._btnGasChildMeterReadingManagement.Size = new System.Drawing.Size(245, 62);
             this._btnGasChildMeterReadingManagement.TabIndex = 18;
-            this._btnGasChildMeterReadingManagement.Text = "ガス子メータ検針データ管理";
+            this._btnGasChildMeterReadingManagement.Text = "ガス子メーター検針データ管理";
             this._btnGasChildMeterReadingManagement.UseVisualStyleBackColor = true;
             // 
             // _btnWaterChildMeterReadingManagement
@@ -202,7 +204,7 @@ namespace WaterUtilityCost.Forms
             this._btnWaterChildMeterReadingManagement.Name = "_btnWaterChildMeterReadingManagement";
             this._btnWaterChildMeterReadingManagement.Size = new System.Drawing.Size(245, 62);
             this._btnWaterChildMeterReadingManagement.TabIndex = 19;
-            this._btnWaterChildMeterReadingManagement.Text = "水道子メータ検針データ管理";
+            this._btnWaterChildMeterReadingManagement.Text = "水道子メーター検針データ管理";
             this._btnWaterChildMeterReadingManagement.UseVisualStyleBackColor = true;
             // 
             // _btnContractManagement
@@ -215,6 +217,7 @@ namespace WaterUtilityCost.Forms
             this._btnContractManagement.TabIndex = 8;
             this._btnContractManagement.Text = "契約管理";
             this._btnContractManagement.UseVisualStyleBackColor = true;
+            this._btnContractManagement.Visible = false;
             // 
             // _btnMeterManagement
             // 
@@ -257,7 +260,7 @@ namespace WaterUtilityCost.Forms
             this._btnBillingDataRegistration.Name = "_btnBillingDataRegistration";
             this._btnBillingDataRegistration.Size = new System.Drawing.Size(245, 62);
             this._btnBillingDataRegistration.TabIndex = 10;
-            this._btnBillingDataRegistration.Text = "請求データ登録";
+            this._btnBillingDataRegistration.Text = "請求明細データ作成";
             this._btnBillingDataRegistration.UseVisualStyleBackColor = true;
             // 
             // _btnInvoicePrint
@@ -281,6 +284,7 @@ namespace WaterUtilityCost.Forms
             this._btnCreateScreenSpecification.TabIndex = 11;
             this._btnCreateScreenSpecification.Text = "画面仕様書作成";
             this._btnCreateScreenSpecification.UseVisualStyleBackColor = true;
+            this._btnCreateScreenSpecification.Visible = false;
             // 
             // _btnDeleteAllData
             // 
@@ -288,10 +292,23 @@ namespace WaterUtilityCost.Forms
             this._btnDeleteAllData.Location = new System.Drawing.Point(307, 418);
             this._btnDeleteAllData.Margin = new System.Windows.Forms.Padding(4);
             this._btnDeleteAllData.Name = "_btnDeleteAllData";
-            this._btnDeleteAllData.Size = new System.Drawing.Size(121, 35);
+            this._btnDeleteAllData.Size = new System.Drawing.Size(191, 35);
             this._btnDeleteAllData.TabIndex = 12;
             this._btnDeleteAllData.Text = "データ削除";
             this._btnDeleteAllData.UseVisualStyleBackColor = true;
+            this._btnDeleteAllData.Visible = false;
+            // 
+            // _btnInitialDataRegistration
+            // 
+            this._btnInitialDataRegistration.Font = new System.Drawing.Font("メイリオ", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this._btnInitialDataRegistration.Location = new System.Drawing.Point(307, 207);
+            this._btnInitialDataRegistration.Margin = new System.Windows.Forms.Padding(4);
+            this._btnInitialDataRegistration.Name = "_btnInitialDataRegistration";
+            this._btnInitialDataRegistration.Size = new System.Drawing.Size(245, 62);
+            this._btnInitialDataRegistration.TabIndex = 21;
+            this._btnInitialDataRegistration.Text = "初期データ登録";
+            this._btnInitialDataRegistration.UseVisualStyleBackColor = true;
+            this._btnInitialDataRegistration.Visible = false;
             // 
             // _btnExit
             // 
@@ -309,6 +326,7 @@ namespace WaterUtilityCost.Forms
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1412, 573);
+            this.Controls.Add(this._btnInitialDataRegistration);
             this.Controls.Add(this._btnDeleteAllData);
             this.Controls.Add(this._btnCreateScreenSpecification);
             this.Controls.Add(this._btnInvoicePrint);

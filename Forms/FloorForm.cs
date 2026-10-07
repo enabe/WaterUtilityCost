@@ -15,19 +15,38 @@ namespace WaterUtilityCost.Forms
     {
         private Floor _currentFloor;
         private bool _isEditMode;
+        private bool _isCopyMode;
 
         public FloorForm()
         {
             InitializeComponent();
             InitializeComponentAdditional();
             _isEditMode = false;
+            _isCopyMode = false;
         }
 
         public FloorForm(Floor floor) : this()
         {
             _currentFloor = floor;
             _isEditMode = true;
+            _isCopyMode = false;
             LoadFloorData();
+        }
+
+        /// <summary>
+        /// 既存の部屋データをコピーして新規登録画面を開くコンストラクタ
+        /// </summary>
+        /// <param name="floor">コピー元の部屋データ</param>
+        /// <param name="isCopyMode">コピーモード</param>
+        public FloorForm(Floor floor, bool isCopyMode) : this()
+        {
+            if (isCopyMode)
+            {
+                _currentFloor = floor;
+                _isEditMode = false;
+                _isCopyMode = true;
+                this.Text = "部屋情報登録";
+            }
         }
 
         private void InitializeComponentAdditional()
@@ -50,6 +69,15 @@ namespace WaterUtilityCost.Forms
         private async void FloorForm_Load(object? sender, EventArgs e)
         {
             await LoadBuildingsAsync();
+
+            if (_isEditMode && _currentFloor != null)
+            {
+                LoadFloorData();
+            }
+            else if (_isCopyMode && _currentFloor != null)
+            {
+                LoadFloorDataForCopy();
+            }
         }
 
         private async Task LoadBuildingsAsync()
@@ -88,6 +116,24 @@ namespace WaterUtilityCost.Forms
                 cmbBuilding.SelectedValue = _currentFloor.BuildingId;
             }
             txtFloorName.Text = _currentFloor.FloorName;
+            txtFloorArea.Text = _currentFloor.FloorArea.ToString();
+        }
+
+        /// <summary>
+        /// コピーモード用のデータ読み込み（ビル名をコピーし、部屋名は空にする）
+        /// </summary>
+        private void LoadFloorDataForCopy()
+        {
+            if (_currentFloor == null) return;
+
+            if (cmbBuilding.Items.Count > 0)
+            {
+                cmbBuilding.SelectedValue = _currentFloor.BuildingId;
+            }
+
+            // 部屋名は新規入力とする
+            txtFloorName.Text = string.Empty;
+            // 面積はコピーする
             txtFloorArea.Text = _currentFloor.FloorArea.ToString();
         }
 

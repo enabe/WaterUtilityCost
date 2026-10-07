@@ -8,7 +8,7 @@ namespace WaterUtilityCost.Forms
         private System.ComponentModel.IContainer components = null;
 
         private System.Windows.Forms.Label lblBillingTo;
-        private System.Windows.Forms.TextBox txtBillingTo;
+        private System.Windows.Forms.ComboBox cmbBillingTo;
         private System.Windows.Forms.Label lblLessor;
         private System.Windows.Forms.TextBox txtLessor;
         private System.Windows.Forms.Label lblBuildingName;
@@ -29,6 +29,8 @@ namespace WaterUtilityCost.Forms
         private System.Windows.Forms.ComboBox cmbContractor;
         private System.Windows.Forms.Label lblInvoiceNumber;
         private System.Windows.Forms.TextBox txtInvoiceNumber;
+        private System.Windows.Forms.Label lblBillingYearMonth;
+        private System.Windows.Forms.TextBox txtBillingYearMonth;
         private System.Windows.Forms.Label lblConfirmedBillingDate;
         private System.Windows.Forms.DateTimePicker dtpConfirmedBillingDate;
         private System.Windows.Forms.Button btnSave;
@@ -56,7 +58,7 @@ namespace WaterUtilityCost.Forms
         private void InitializeComponent()
         {
             this.lblBillingTo = new System.Windows.Forms.Label();
-            this.txtBillingTo = new System.Windows.Forms.TextBox();
+            this.cmbBillingTo = new System.Windows.Forms.ComboBox();
             this.lblLessor = new System.Windows.Forms.Label();
             this.txtLessor = new System.Windows.Forms.TextBox();
             this.lblBuildingName = new System.Windows.Forms.Label();
@@ -77,6 +79,8 @@ namespace WaterUtilityCost.Forms
             this.cmbContractor = new System.Windows.Forms.ComboBox();
             this.lblInvoiceNumber = new System.Windows.Forms.Label();
             this.txtInvoiceNumber = new System.Windows.Forms.TextBox();
+            this.lblBillingYearMonth = new System.Windows.Forms.Label();
+            this.txtBillingYearMonth = new System.Windows.Forms.TextBox();
             this.lblConfirmedBillingDate = new System.Windows.Forms.Label();
             this.dtpConfirmedBillingDate = new System.Windows.Forms.DateTimePicker();
             this.btnSave = new System.Windows.Forms.Button();
@@ -93,13 +97,15 @@ namespace WaterUtilityCost.Forms
             this.lblBillingTo.TabIndex = 0;
             this.lblBillingTo.Text = "請求先:";
             // 
-            // txtBillingTo
+            // cmbBillingTo
             // 
-            this.txtBillingTo.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.txtBillingTo.Location = new System.Drawing.Point(150, 17);
-            this.txtBillingTo.Name = "txtBillingTo";
-            this.txtBillingTo.Size = new System.Drawing.Size(350, 32);
-            this.txtBillingTo.TabIndex = 1;
+            this.cmbBillingTo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbBillingTo.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.cmbBillingTo.FormattingEnabled = true;
+            this.cmbBillingTo.Location = new System.Drawing.Point(150, 17);
+            this.cmbBillingTo.Name = "cmbBillingTo";
+            this.cmbBillingTo.Size = new System.Drawing.Size(350, 33);
+            this.cmbBillingTo.TabIndex = 1;
             // 
             // lblLessor
             // 
@@ -284,43 +290,61 @@ namespace WaterUtilityCost.Forms
             this.txtInvoiceNumber.Size = new System.Drawing.Size(350, 32);
             this.txtInvoiceNumber.TabIndex = 21;
             // 
+            // lblBillingYearMonth
+            // 
+            this.lblBillingYearMonth.AutoSize = true;
+            this.lblBillingYearMonth.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.lblBillingYearMonth.Location = new System.Drawing.Point(20, 460);
+            this.lblBillingYearMonth.Name = "lblBillingYearMonth";
+            this.lblBillingYearMonth.Size = new System.Drawing.Size(185, 25);
+            this.lblBillingYearMonth.TabIndex = 22;
+            this.lblBillingYearMonth.Text = "請求年月 (YYYY-MM):";
+            // 
+            // txtBillingYearMonth
+            // 
+            this.txtBillingYearMonth.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.txtBillingYearMonth.Location = new System.Drawing.Point(150, 457);
+            this.txtBillingYearMonth.Name = "txtBillingYearMonth";
+            this.txtBillingYearMonth.Size = new System.Drawing.Size(150, 32);
+            this.txtBillingYearMonth.TabIndex = 23;
+            // 
             // lblConfirmedBillingDate
             // 
             this.lblConfirmedBillingDate.AutoSize = true;
             this.lblConfirmedBillingDate.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.lblConfirmedBillingDate.Location = new System.Drawing.Point(20, 460);
+            this.lblConfirmedBillingDate.Location = new System.Drawing.Point(20, 500);
             this.lblConfirmedBillingDate.Name = "lblConfirmedBillingDate";
             this.lblConfirmedBillingDate.Size = new System.Drawing.Size(111, 25);
-            this.lblConfirmedBillingDate.TabIndex = 22;
-            this.lblConfirmedBillingDate.Text = "決定請求日:";
+            this.lblConfirmedBillingDate.TabIndex = 24;
+            this.lblConfirmedBillingDate.Text = "請求予定日:";
             // 
             // dtpConfirmedBillingDate
             // 
             this.dtpConfirmedBillingDate.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.dtpConfirmedBillingDate.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-            this.dtpConfirmedBillingDate.Location = new System.Drawing.Point(150, 457);
+            this.dtpConfirmedBillingDate.Location = new System.Drawing.Point(150, 497);
             this.dtpConfirmedBillingDate.Name = "dtpConfirmedBillingDate";
             this.dtpConfirmedBillingDate.ShowCheckBox = true;
             this.dtpConfirmedBillingDate.Size = new System.Drawing.Size(200, 32);
-            this.dtpConfirmedBillingDate.TabIndex = 23;
+            this.dtpConfirmedBillingDate.TabIndex = 25;
             // 
             // btnSave
             // 
             this.btnSave.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.btnSave.Location = new System.Drawing.Point(150, 510);
+            this.btnSave.Location = new System.Drawing.Point(150, 550);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(100, 35);
-            this.btnSave.TabIndex = 24;
+            this.btnSave.TabIndex = 26;
             this.btnSave.Text = "保存";
             this.btnSave.UseVisualStyleBackColor = true;
             // 
             // btnCancel
             // 
             this.btnCancel.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.btnCancel.Location = new System.Drawing.Point(260, 510);
+            this.btnCancel.Location = new System.Drawing.Point(260, 550);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(100, 35);
-            this.btnCancel.TabIndex = 25;
+            this.btnCancel.TabIndex = 27;
             this.btnCancel.Text = "キャンセル";
             this.btnCancel.UseVisualStyleBackColor = true;
             // 
@@ -328,11 +352,13 @@ namespace WaterUtilityCost.Forms
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(550, 570);
+            this.ClientSize = new System.Drawing.Size(550, 610);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
             this.Controls.Add(this.dtpConfirmedBillingDate);
             this.Controls.Add(this.lblConfirmedBillingDate);
+            this.Controls.Add(this.txtBillingYearMonth);
+            this.Controls.Add(this.lblBillingYearMonth);
             this.Controls.Add(this.txtInvoiceNumber);
             this.Controls.Add(this.lblInvoiceNumber);
             this.Controls.Add(this.cmbContractor);
@@ -353,7 +379,7 @@ namespace WaterUtilityCost.Forms
             this.Controls.Add(this.lblBuildingName);
             this.Controls.Add(this.txtLessor);
             this.Controls.Add(this.lblLessor);
-            this.Controls.Add(this.txtBillingTo);
+            this.Controls.Add(this.cmbBillingTo);
             this.Controls.Add(this.lblBillingTo);
             this.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;

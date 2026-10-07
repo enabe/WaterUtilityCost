@@ -15,14 +15,6 @@ namespace WaterUtilityCost.Forms
         private System.Windows.Forms.TextBox txtAddress;
         private System.Windows.Forms.Label lblFloors;
         private System.Windows.Forms.TextBox txtFloors;
-        private System.Windows.Forms.Label lblBuiltDate;
-        private System.Windows.Forms.TextBox txtBuiltDate;
-        private System.Windows.Forms.Label lblArea;
-        private System.Windows.Forms.TextBox txtArea;
-        private System.Windows.Forms.Label lblOwner;
-        private System.Windows.Forms.TextBox txtOwner;
-        private System.Windows.Forms.Label lblContact;
-        private System.Windows.Forms.TextBox txtContact;
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.Button btnCancel;
 
@@ -55,14 +47,6 @@ namespace WaterUtilityCost.Forms
             this.txtAddress = new System.Windows.Forms.TextBox();
             this.lblFloors = new System.Windows.Forms.Label();
             this.txtFloors = new System.Windows.Forms.TextBox();
-            this.lblBuiltDate = new System.Windows.Forms.Label();
-            this.txtBuiltDate = new System.Windows.Forms.TextBox();
-            this.lblArea = new System.Windows.Forms.Label();
-            this.txtArea = new System.Windows.Forms.TextBox();
-            this.lblOwner = new System.Windows.Forms.Label();
-            this.txtOwner = new System.Windows.Forms.TextBox();
-            this.lblContact = new System.Windows.Forms.Label();
-            this.txtContact = new System.Windows.Forms.TextBox();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
@@ -127,90 +111,27 @@ namespace WaterUtilityCost.Forms
             // txtFloors
             // 
             this.txtFloors.Location = new System.Drawing.Point(110, 107);
+            this.txtFloors.ImeMode = System.Windows.Forms.ImeMode.Disable;
             this.txtFloors.Name = "txtFloors";
             this.txtFloors.Size = new System.Drawing.Size(120, 19);
             this.txtFloors.TabIndex = 7;
             // 
-            // lblBuiltDate
-            // 
-            this.lblBuiltDate.AutoSize = true;
-            this.lblBuiltDate.Location = new System.Drawing.Point(20, 140);
-            this.lblBuiltDate.Name = "lblBuiltDate";
-            this.lblBuiltDate.Size = new System.Drawing.Size(47, 12);
-            this.lblBuiltDate.TabIndex = 8;
-            this.lblBuiltDate.Text = "建設日:";
-            // 
-            // txtBuiltDate
-            // 
-            this.txtBuiltDate.Location = new System.Drawing.Point(110, 137);
-            this.txtBuiltDate.Name = "txtBuiltDate";
-            this.txtBuiltDate.Size = new System.Drawing.Size(140, 19);
-            this.txtBuiltDate.TabIndex = 9;
-            // 
-            // lblArea
-            // 
-            this.lblArea.AutoSize = true;
-            this.lblArea.Location = new System.Drawing.Point(20, 170);
-            this.lblArea.Name = "lblArea";
-            this.lblArea.Size = new System.Drawing.Size(53, 12);
-            this.lblArea.TabIndex = 8;
-            this.lblArea.Text = "面積(㎡):";
-            // 
-            // txtArea
-            // 
-            this.txtArea.Location = new System.Drawing.Point(110, 167);
-            this.txtArea.Name = "txtArea";
-            this.txtArea.Size = new System.Drawing.Size(120, 19);
-            this.txtArea.TabIndex = 10;
-            // 
-            // lblOwner
-            // 
-            this.lblOwner.AutoSize = true;
-            this.lblOwner.Location = new System.Drawing.Point(20, 200);
-            this.lblOwner.Name = "lblOwner";
-            this.lblOwner.Size = new System.Drawing.Size(47, 12);
-            this.lblOwner.TabIndex = 11;
-            this.lblOwner.Text = "所有者:";
-            // 
-            // txtOwner
-            // 
-            this.txtOwner.Location = new System.Drawing.Point(110, 197);
-            this.txtOwner.Name = "txtOwner";
-            this.txtOwner.Size = new System.Drawing.Size(340, 19);
-            this.txtOwner.TabIndex = 12;
-            // 
-            // lblContact
-            // 
-            this.lblContact.AutoSize = true;
-            this.lblContact.Location = new System.Drawing.Point(20, 230);
-            this.lblContact.Name = "lblContact";
-            this.lblContact.Size = new System.Drawing.Size(47, 12);
-            this.lblContact.TabIndex = 13;
-            this.lblContact.Text = "連絡先:";
-            // 
-            // txtContact
-            // 
-            this.txtContact.Location = new System.Drawing.Point(110, 227);
-            this.txtContact.Name = "txtContact";
-            this.txtContact.Size = new System.Drawing.Size(340, 19);
-            this.txtContact.TabIndex = 14;
-            // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(290, 310);
+            this.btnSave.Location = new System.Drawing.Point(290, 200);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(80, 30);
-            this.btnSave.TabIndex = 14;
+            this.btnSave.TabIndex = 8;
             this.btnSave.Text = "保存";
             this.btnSave.UseVisualStyleBackColor = true;
             // 
             // btnCancel
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(380, 310);
+            this.btnCancel.Location = new System.Drawing.Point(380, 200);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(100, 30);
-            this.btnCancel.TabIndex = 15;
+            this.btnCancel.TabIndex = 9;
             this.btnCancel.Text = "キャンセル";
             this.btnCancel.UseVisualStyleBackColor = true;
             // 
@@ -220,17 +141,9 @@ namespace WaterUtilityCost.Forms
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Font = new System.Drawing.Font("メイリオ", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(500, 430);
+            this.ClientSize = new System.Drawing.Size(500, 280);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
-            this.Controls.Add(this.txtContact);
-            this.Controls.Add(this.lblContact);
-            this.Controls.Add(this.txtOwner);
-            this.Controls.Add(this.lblOwner);
-            this.Controls.Add(this.txtArea);
-            this.Controls.Add(this.lblArea);
-            this.Controls.Add(this.txtBuiltDate);
-            this.Controls.Add(this.lblBuiltDate);
             this.Controls.Add(this.txtFloors);
             this.Controls.Add(this.lblFloors);
             this.Controls.Add(this.txtAddress);

@@ -50,6 +50,9 @@ namespace WaterUtilityCost.Forms
             // _dgvContracts
             // 
             this._dgvContracts.AllowUserToAddRows = false;
+            this._dgvContracts.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this._dgvContracts.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this._dgvContracts.Location = new System.Drawing.Point(20, 70);
             this._dgvContracts.MultiSelect = false;

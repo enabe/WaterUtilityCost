@@ -13,7 +13,11 @@ namespace WaterUtilityCost.Models
         public bool IsLessee { get; set; } // 借主
         public bool IsBillingTo { get; set; } // 請求先
         public bool IsContractor { get; set; } // 業者
+        public bool IsAutoTransfer { get; set; } // 自動振込
+        public bool IsBankTransfer { get; set; } // 口座振込
         public string InvoiceNumber { get; set; } = string.Empty; // インボイス番号
+        public string BuildingName { get; set; } = string.Empty; // ビル名
+        public string RoomName { get; set; } = string.Empty; // 部屋名
         public string PostalCode { get; set; } = string.Empty; // 郵便番号
         public string Address { get; set; } = string.Empty; // 住所
         public string Phone { get; set; } = string.Empty; // 電話番号

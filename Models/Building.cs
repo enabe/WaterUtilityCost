@@ -12,10 +12,6 @@ namespace WaterUtilityCost.Models
         public string Name { get; set; }
         public string Address { get; set; }
         public int Floors { get; set; } // 階数
-        public DateTime BuiltDate { get; set; }
-        public decimal Area { get; set; } // 面積（㎡）
-        public string Owner { get; set; }
-        public string Contact { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

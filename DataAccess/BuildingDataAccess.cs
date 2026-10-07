@@ -37,10 +37,6 @@ namespace WaterUtilityCost.DataAccess
                     Name = reader.GetString(reader.GetOrdinal("Name")),
                     Address = reader.IsDBNull(reader.GetOrdinal("Address")) ? string.Empty : reader.GetString(reader.GetOrdinal("Address")),
                     Floors = reader.IsDBNull(reader.GetOrdinal("Floors")) ? 0 : reader.GetInt32(reader.GetOrdinal("Floors")),
-                    BuiltDate = reader.IsDBNull(reader.GetOrdinal("BuiltDate")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("BuiltDate")),
-                    Area = reader.IsDBNull(reader.GetOrdinal("Area")) ? 0 : reader.GetDecimal(reader.GetOrdinal("Area")),
-                    Owner = reader.IsDBNull(reader.GetOrdinal("Owner")) ? string.Empty : reader.GetString(reader.GetOrdinal("Owner")),
-                    Contact = reader.IsDBNull(reader.GetOrdinal("Contact")) ? string.Empty : reader.GetString(reader.GetOrdinal("Contact")),
                     CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                     UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt"))
                 });
@@ -69,10 +65,6 @@ namespace WaterUtilityCost.DataAccess
                     Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? string.Empty : reader.GetString(reader.GetOrdinal("Name")),
                     Address = reader.IsDBNull(reader.GetOrdinal("Address")) ? string.Empty : reader.GetString(reader.GetOrdinal("Address")),
                     Floors = reader.IsDBNull(reader.GetOrdinal("Floors")) ? 0 : reader.GetInt32(reader.GetOrdinal("Floors")),
-                    BuiltDate = reader.IsDBNull(reader.GetOrdinal("BuiltDate")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("BuiltDate")),
-                    Area = reader.IsDBNull(reader.GetOrdinal("Area")) ? 0 : reader.GetDecimal(reader.GetOrdinal("Area")),
-                    Owner = reader.IsDBNull(reader.GetOrdinal("Owner")) ? string.Empty : reader.GetString(reader.GetOrdinal("Owner")),
-                    Contact = reader.IsDBNull(reader.GetOrdinal("Contact")) ? string.Empty : reader.GetString(reader.GetOrdinal("Contact")),
                     CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
                     UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt"))
                 };
@@ -88,8 +80,8 @@ namespace WaterUtilityCost.DataAccess
             using var connection = new SqlConnection(DatabaseHelper.ConnectionString);
             await connection.OpenAsync();
 
-            var query = @"INSERT INTO Buildings (BuildingId, Name, Address, Floors, BuiltDate, Area, Owner, Contact, CreatedAt, UpdatedAt)
-                         VALUES (@BuildingId, @Name, @Address, @Floors, @BuiltDate, @Area, @Owner, @Contact, @CreatedAt, @UpdatedAt);
+            var query = @"INSERT INTO Buildings (BuildingId, Name, Address, Floors, CreatedAt, UpdatedAt)
+                         VALUES (@BuildingId, @Name, @Address, @Floors, @CreatedAt, @UpdatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using var cmd = new SqlCommand(query, connection);
@@ -97,16 +89,6 @@ namespace WaterUtilityCost.DataAccess
             cmd.Parameters.AddWithValue("@Name", building.Name);
             cmd.Parameters.AddWithValue("@Address", (object)building.Address ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@Floors", building.Floors);
-            // DateTime.MinValueまたはSQL ServerのDateTime範囲外の場合はNULLとして扱う
-            // SQL ServerのDateTime型は1753-01-01から9999-12-31まで
-            var sqlMinDate = new DateTime(1753, 1, 1);
-            var builtDateValue = (building.BuiltDate == DateTime.MinValue || building.BuiltDate < sqlMinDate) 
-                ? DBNull.Value 
-                : (object)building.BuiltDate;
-            cmd.Parameters.AddWithValue("@BuiltDate", builtDateValue);
-            cmd.Parameters.AddWithValue("@Area", building.Area);
-            cmd.Parameters.AddWithValue("@Owner", (object)building.Owner ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Contact", (object)building.Contact ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@CreatedAt", DateTime.Now);
             cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
 
@@ -122,8 +104,8 @@ namespace WaterUtilityCost.DataAccess
             await connection.OpenAsync();
 
             var query = @"UPDATE Buildings 
-                         SET BuildingId = @BuildingId, Name = @Name, Address = @Address, Floors = @Floors, BuiltDate = @BuiltDate,
-                             Area = @Area, Owner = @Owner, Contact = @Contact, UpdatedAt = @UpdatedAt
+                         SET BuildingId = @BuildingId, Name = @Name, Address = @Address, Floors = @Floors,
+                             UpdatedAt = @UpdatedAt
                          WHERE Id = @Id";
 
             using var cmd = new SqlCommand(query, connection);
@@ -132,16 +114,6 @@ namespace WaterUtilityCost.DataAccess
             cmd.Parameters.AddWithValue("@Name", building.Name);
             cmd.Parameters.AddWithValue("@Address", (object)building.Address ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@Floors", building.Floors);
-            // DateTime.MinValueまたはSQL ServerのDateTime範囲外の場合はNULLとして扱う
-            // SQL ServerのDateTime型は1753-01-01から9999-12-31まで
-            var sqlMinDate = new DateTime(1753, 1, 1);
-            var builtDateValue = (building.BuiltDate == DateTime.MinValue || building.BuiltDate < sqlMinDate) 
-                ? DBNull.Value 
-                : (object)building.BuiltDate;
-            cmd.Parameters.AddWithValue("@BuiltDate", builtDateValue);
-            cmd.Parameters.AddWithValue("@Area", building.Area);
-            cmd.Parameters.AddWithValue("@Owner", (object)building.Owner ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Contact", (object)building.Contact ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
 
             await cmd.ExecuteNonQueryAsync();
@@ -160,6 +132,63 @@ namespace WaterUtilityCost.DataAccess
             cmd.Parameters.AddWithValue("@Id", id);
 
             await cmd.ExecuteNonQueryAsync();
+        }
+
+        /// <summary>
+        /// ビル情報を全削除してIDを初期化し、CSVデータで再登録する
+        /// </summary>
+        public static async Task ReplaceBuildingsAsync(IEnumerable<Building> buildings)
+        {
+            using var connection = new SqlConnection(DatabaseHelper.ConnectionString);
+            await connection.OpenAsync();
+
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                using (var deleteCmd = new SqlCommand("DELETE FROM Buildings", connection, transaction))
+                {
+                    await deleteCmd.ExecuteNonQueryAsync();
+                }
+
+                using (var reseedCmd = new SqlCommand("DBCC CHECKIDENT ('[dbo].[Buildings]', RESEED, 0);", connection, transaction))
+                {
+                    await reseedCmd.ExecuteNonQueryAsync();
+                }
+
+                var insertQuery = @"INSERT INTO Buildings (BuildingId, Name, Address, Floors, CreatedAt, UpdatedAt)
+                                    VALUES (@BuildingId, @Name, @Address, @Floors, @CreatedAt, @UpdatedAt)";
+                using var insertCmd = new SqlCommand(insertQuery, connection, transaction);
+                insertCmd.Parameters.Add("@BuildingId", SqlDbType.NVarChar, 50);
+                insertCmd.Parameters.Add("@Name", SqlDbType.NVarChar, 100);
+                insertCmd.Parameters.Add("@Address", SqlDbType.NVarChar, 200);
+                insertCmd.Parameters.Add("@Floors", SqlDbType.Int);
+                insertCmd.Parameters.Add("@CreatedAt", SqlDbType.DateTime);
+                insertCmd.Parameters.Add("@UpdatedAt", SqlDbType.DateTime);
+
+                var now = DateTime.Now;
+                foreach (var building in buildings)
+                {
+                    insertCmd.Parameters["@BuildingId"].Value = string.IsNullOrWhiteSpace(building.BuildingId)
+                        ? DBNull.Value
+                        : building.BuildingId;
+                    insertCmd.Parameters["@Name"].Value = building.Name;
+                    insertCmd.Parameters["@Address"].Value = string.IsNullOrWhiteSpace(building.Address)
+                        ? DBNull.Value
+                        : building.Address;
+                    insertCmd.Parameters["@Floors"].Value = building.Floors;
+                    insertCmd.Parameters["@CreatedAt"].Value = now;
+                    insertCmd.Parameters["@UpdatedAt"].Value = now;
+
+                    await insertCmd.ExecuteNonQueryAsync();
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
     }
 }

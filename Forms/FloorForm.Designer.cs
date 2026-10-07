@@ -93,6 +93,7 @@ namespace WaterUtilityCost.Forms
             // txtFloorArea
             // 
             this.txtFloorArea.Location = new System.Drawing.Point(156, 77);
+            this.txtFloorArea.ImeMode = System.Windows.Forms.ImeMode.Disable;
             this.txtFloorArea.Name = "txtFloorArea";
             this.txtFloorArea.Size = new System.Drawing.Size(120, 32);
             this.txtFloorArea.TabIndex = 5;
